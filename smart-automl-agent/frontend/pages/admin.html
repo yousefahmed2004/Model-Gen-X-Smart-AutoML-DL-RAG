@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Admin — Model Gen X</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Inter:wght@300..600&family=JetBrains+Mono:wght@400..600&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#06121A;color:#E6EDF3;font-family:'Inter',sans-serif;min-height:100vh;}
+/* Lock */
+#lock{position:fixed;inset:0;background:#06121A;z-index:9999;display:flex;align-items:center;justify-content:center;}
+.lock-box{background:#0D1B2A;border:1px solid #1E2D40;border-radius:20px;padding:48px 40px;width:380px;text-align:center;}
+.lock-box h2{font-family:'Fraunces',serif;font-size:28px;margin-bottom:8px;}
+.lock-box p{color:#8B949E;font-size:14px;margin-bottom:28px;}
+.lock-input{width:100%;background:#0A1628;border:1px solid #1E2D40;border-radius:10px;padding:14px 16px;color:#E6EDF3;font-size:18px;font-family:'JetBrains Mono',monospace;letter-spacing:.3em;text-align:center;margin-bottom:16px;}
+.lock-input:focus{outline:none;border-color:#00E5FF;}
+.btn-enter{width:100%;height:48px;background:#00E5FF;color:#06121A;border:none;border-radius:999px;font-size:15px;font-weight:600;cursor:pointer;}
+.btn-enter:hover{background:#00CCEE;}
+.err{color:#F85149;font-size:13px;margin-top:10px;min-height:20px;}
+/* Dashboard */
+#dash{display:none;}
+.topbar{background:#0D1B2A;border-bottom:1px solid #1E2D40;padding:16px 32px;display:flex;align-items:center;justify-content:space-between;}
+.topbar h1{font-family:'Fraunces',serif;font-size:20px;}
+.main{max-width:1100px;margin:0 auto;padding:32px 24px;}
+.stats{color:#8B949E;font-size:14px;margin-bottom:24px;}
+.filters{display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap;}
+.fbtn{padding:8px 18px;border-radius:999px;border:1px solid #1E2D40;background:transparent;color:#8B949E;cursor:pointer;font-size:13px;}
+.fbtn.active{background:#00E5FF;color:#06121A;border-color:#00E5FF;font-weight:600;}
+.card{background:#0D1B2A;border:1px solid #1E2D40;border-radius:14px;padding:20px 24px;margin-bottom:12px;}
+.card.pending{border-left:3px solid #D29922;}
+.card.approved{border-left:3px solid #3FB950;opacity:.75;}
+.card.rejected{border-left:3px solid #F85149;opacity:.6;}
+.name{font-weight:600;font-size:16px;}
+.email{font-size:13px;color:#8B949E;margin-left:8px;}
+.meta{font-family:'JetBrains Mono',monospace;font-size:12px;color:#8B949E;margin:6px 0;}
+.badge{padding:3px 10px;border-radius:999px;font-size:11px;font-family:'JetBrains Mono',monospace;}
+.b-pending{background:rgba(210,153,34,.15);color:#D29922;}
+.b-approved{background:rgba(63,185,80,.15);color:#3FB950;}
+.b-rejected{background:rgba(248,81,73,.15);color:#F85149;}
+.actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.btn-approve{padding:8px 16px;background:#3FB950;color:#fff;border:none;border-radius:999px;cursor:pointer;font-size:13px;}
+.btn-reject{padding:8px 16px;background:transparent;color:#F85149;border:1px solid #F85149;border-radius:999px;cursor:pointer;font-size:13px;}
+.btn-ss{padding:6px 12px;background:transparent;border:1px solid #1E2D40;color:#8B949E;border-radius:999px;cursor:pointer;font-size:12px;}
+.btn-refresh{padding:8px 16px;background:transparent;border:1px solid #1E2D40;color:#E6EDF3;border-radius:999px;cursor:pointer;font-size:13px;}
+.btn-lock{padding:8px 16px;background:transparent;border:1px solid #F85149;color:#F85149;border-radius:999px;cursor:pointer;font-size:13px;}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:center;justify-content:center;}
+.modal img{max-width:90vw;max-height:80vh;border-radius:12px;}
+.modal-close{margin-top:16px;padding:10px 28px;background:#0D1B2A;border:1px solid #1E2D40;color:#E6EDF3;border-radius:999px;cursor:pointer;}
+.empty{text-align:center;padding:60px;color:#8B949E;}
+</style>
+</head>
+<body>
+
+<!-- Lock Screen -->
+<div id="lock">
+    <div class="lock-box">
+        <div style="font-size:44px;margin-bottom:20px;">Model Gen X</div>
+        <h2>Admin Panel</h2>
+        <p>Model Gen X — restricted access</p>
+        <input class="lock-input" type="password" id="pw" placeholder="••••••••"
+               onkeydown="if(event.key==='Enter')tryUnlock()"/>
+        <button class="btn-enter" onclick="tryUnlock()">Enter →</button>
+        <div class="err" id="err"></div>
+    </div>
+</div>
+
+<!-- Dashboard -->
+<div id="dash">
+    <div class="topbar">
+        <h1>Model Gen X - Payment Requests</h1>
+        <div style="display:flex;gap:10px;">
+            <button class="btn-refresh" onclick="load()">Refresh</button>
+            <button class="btn-lock" onclick="lock()"> Lock</button>
+        </div>
+    </div>
+    <div class="main">
+        <div class="stats" id="stats">Loading…</div>
+        <div class="filters">
+            <button class="fbtn active" onclick="filter('all',this)">All</button>
+            <button class="fbtn" onclick="filter('pending',this)">Pending</button>
+            <button class="fbtn" onclick="filter('approved',this)">Approved</button>
+            <button class="fbtn" onclick="filter('rejected',this)">Rejected</button>
+        </div>
+        <div id="list"></div>
+    </div>
+</div>
+
+<script>
+const ADMIN_PASS = '123456';
+const API = 'https://modelgenx.site';
+
+function tryUnlock() {
+    const pw = document.getElementById('pw').value;
+    const err = document.getElementById('err');
+    if (pw === ADMIN_PASS) {
+        sessionStorage.setItem('mgx_adm', '1');
+        document.getElementById('lock').style.display = 'none';
+        document.getElementById('dash').style.display = 'block';
+        load();
+    } else {
+        err.textContent = 'Incorrect password';
+        document.getElementById('pw').value = '';
+        setTimeout(() => err.textContent = '', 2000);
+    }
+}
+
+function lock() {
+    sessionStorage.removeItem('mgx_adm');
+    location.reload();
+}
+
+// Auto-unlock if session active
+if (sessionStorage.getItem('mgx_adm') === '1') {
+    document.getElementById('lock').style.display = 'none';
+    document.getElementById('dash').style.display = 'block';
+    window.addEventListener('load', load);
+}
+
+// ── API helpers ─────────────────────────────────────────────────────────
+function getToken() { return localStorage.getItem('saa.token'); }
+
+async function apiFetch(path, opts={}) {
+    const r = await fetch(API + path, {
+        ...opts,
+        headers: { 'Authorization': `Bearer ${getToken()}`, ...(opts.headers||{}) }
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json();
+}
+
+// ── Data ─────────────────────────────────────────────────────────────────
+let all = [], currentFilter = 'all';
+
+async function load() {
+    try {
+        all = await apiFetch('/api/payments/admin/all');
+        const pending  = all.filter(p => p.status === 'pending').length;
+        const approved = all.filter(p => p.status === 'approved').length;
+        document.getElementById('stats').textContent =
+            `${all.length} total · ${pending} pending · ${approved} approved`;
+        render();
+    } catch(e) {
+        document.getElementById('list').innerHTML =
+            `<div style="color:#F85149;padding:20px;">Error: ${e.message} — make sure you're logged in to modelgenx.site first</div>`;
+    }
+}
+
+function filter(f, btn) {
+    currentFilter = f;
+    document.querySelectorAll('.fbtn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    render();
+}
+
+function render() {
+    const pays = currentFilter === 'all' ? all : all.filter(p => p.status === currentFilter);
+    const list = document.getElementById('list');
+    if (!pays.length) { list.innerHTML = '<div class="empty">No payments found.</div>'; return; }
+    list.innerHTML = pays.map(p => `
+        <div class="card ${p.status}">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+                <div>
+                    <div><span class="name">${p.user_name||'—'}</span><span class="email">${p.user_email||''}</span></div>
+                    <div class="meta">${p.tokens.toLocaleString()} tokens · ${p.amount} EGP · 📱 ${p.phone}</div>
+                    <div style="font-size:12px;color:#6E7681;">${new Date(p.created_at).toLocaleString()}</div>
+                    ${p.note?`<div style="font-size:12px;color:#F85149;margin-top:4px;">${p.note}</div>`:''}
+                </div>
+                <div class="actions">
+                    <span class="badge b-${p.status}">${p.status}</span>
+                    ${p.screenshot?`<button class="btn-ss" onclick="viewSS(${p.id})">📸 Screenshot</button>`:''}
+                    ${p.status==='pending'?`
+                        <button class="btn-approve" onclick="approve(${p.id})">✓ Approve</button>
+                        <button class="btn-reject" onclick="reject(${p.id})">✖ Reject</button>
+                    `:''}
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+async function approve(id) {
+    if (!confirm(`Approve payment #${id}?`)) return;
+    try {
+        const r = await apiFetch(`/api/payments/admin/approve/${id}`, { method: 'POST' });
+        alert(r.message);
+        load();
+    } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function reject(id) {
+    const note = prompt('Reason (optional):') || '';
+    try {
+        const fd = new FormData(); fd.append('note', note);
+        const r = await fetch(`${API}/api/payments/admin/reject/${id}`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${getToken()}` },
+            body: fd
+        });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        load();
+    } catch(e) { alert('Error: ' + e.message); }
+}
+
+function viewSS(id) {
+    document.getElementById('ssModal')?.remove();
+    const m = document.createElement('div');
+    m.id = 'ssModal'; m.className = 'modal';
+    m.innerHTML = `<div style="text-align:center">
+        <img id="ssImg" style="max-width:90vw;max-height:80vh;border-radius:12px;"/>
+        <br/><button class="modal-close" onclick="this.closest('.modal').remove()">Close</button>
+    </div>`;
+    m.addEventListener('click', e => { if(e.target===m) m.remove(); });
+    document.body.appendChild(m);
+    fetch(`${API}/api/payments/admin/screenshot/${id}`, {
+        headers: { 'Authorization': `Bearer ${getToken()}` }
+    }).then(r=>r.blob()).then(b=>{ document.getElementById('ssImg').src=URL.createObjectURL(b); });
+}
+</script>
+</body>
+</html>

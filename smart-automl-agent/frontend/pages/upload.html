@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="api-base" content="https://modelgenx.site" />
+    <title>Upload — Model Gen X</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Inter:wght@300..600&family=JetBrains+Mono:wght@400..600&family=Cairo:wght@300..700&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="../css/main.css" />
+    <link rel="stylesheet" href="../css/app.css" />
+    <style>
+        .drop-zone {
+            border: 2px dashed var(--line);
+            border-radius: 18px;
+            padding: 64px 32px;
+            text-align: center;
+            transition: all 0.2s;
+            cursor: pointer;
+            background: var(--bg-elev);
+            position: relative;
+        }
+
+        .drop-zone:hover,
+        .drop-zone.dragover {
+            border-color: var(--accent);
+            background: var(--accent-soft);
+        }
+
+        .drop-zone.dragover {
+            transform: scale(1.02);
+        }
+
+        .drop-icon {
+            font-family: 'Fraunces', serif;
+            font-size: 56px;
+            color: var(--accent);
+            margin-bottom: 12px;
+            line-height: 1;
+        }
+
+        .drop-title {
+            font-family: 'Fraunces', serif;
+            font-size: 28px;
+            letter-spacing: -0.02em;
+            margin-bottom: 8px;
+        }
+
+        .drop-sub {
+            color: var(--text-dim);
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .drop-types {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-faint);
+            letter-spacing: 0.08em;
+            margin-top: 18px;
+        }
+
+        .progress {
+            height: 4px;
+            background: var(--bg-elev-2);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 16px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--accent);
+            box-shadow: 0 0 10px var(--accent-glow);
+            transition: width 0.3s;
+        }
+
+        .preview-cols {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+        }
+
+        .preview-col {
+            background: var(--bg-elev-2);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 12px 14px;
+        }
+
+        .preview-col-name {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            color: var(--text);
+            margin-bottom: 4px;
+            word-break: break-all;
+        }
+
+        .preview-col-meta {
+            font-size: 11px;
+            color: var(--text-faint);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Dataset type toggle */
+        .type-toggle {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .type-btn {
+            flex: 1;
+            padding: 10px 16px;
+            border-radius: 10px;
+            border: 1px solid var(--line);
+            background: var(--bg-elev-2);
+            color: var(--text-dim);
+            cursor: pointer;
+            font-size: 13px;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .type-btn.active {
+            border-color: var(--accent);
+            background: var(--accent-soft);
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        /* Image dataset info banner */
+        .image-info-banner {
+            margin-top: 16px;
+            padding: 14px 18px;
+            background: rgba(0, 229, 255, 0.06);
+            border: 1px solid rgba(0, 229, 255, 0.2);
+            border-radius: 12px;
+            font-size: 13px;
+            color: var(--text-dim);
+            line-height: 1.7;
+        }
+
+        .image-info-banner strong {
+            color: var(--accent);
+        }
+
+        .image-preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .image-thumb {
+            width: 100%;
+            aspect-ratio: 1;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid var(--line);
+        }
+
+        .image-class-card {
+            background: var(--bg-elev-2);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 12px 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .image-class-icon {
+            font-size: 22px;
+            flex-shrink: 0;
+        }
+
+        .image-class-name {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        .image-class-count {
+            font-size: 11px;
+            color: var(--text-faint);
+            font-family: 'JetBrains Mono', monospace;
+            margin-top: 2px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-shell">
+        <aside class="sidebar"></aside>
+
+        <main class="main">
+            <div class="page-head">
+                <div>
+                    <div class="page-eyebrow">/ data ingest</div>
+                    <h1 class="page-title">Upload a dataset.</h1>
+                    <p class="page-sub" id="pageSubtitle">CSV, Excel, Parquet, or Image ZIP — up to 200 MB on the free plan.</p>
+                </div>
+            </div>
+
+            <!-- Project selector -->
+            <div class="card" style="margin-bottom:24px;">
+                <div class="row" style="gap:16px;align-items:flex-end;">
+                    <div class="field" style="flex:1;min-width:240px;">
+                        <label>Project</label>
+                        <select id="projectSel"></select>
+                    </div>
+                    <button class="btn btn-ghost" id="newProjectBtn">+ New project</button>
+                </div>
+            </div>
+
+            <!-- My Datasets -->
+            <div class="card" style="margin-bottom:24px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+                    <div>
+                        <div class="page-eyebrow" style="margin-bottom:4px;">My Datasets</div>
+                        <div style="font-size:13px;color:var(--text-dim);">All datasets in this project</div>
+                    </div>
+                    <button onclick="loadMyDatasets()"
+                        style="background:none;border:1px solid var(--line);border-radius:8px;padding:6px 12px;color:var(--text-dim);cursor:pointer;font-size:12px;">↻
+                        Refresh</button>
+                </div>
+                <div id="myDatasetsList">
+                    <div style="text-align:center;padding:20px;color:var(--text-faint);font-size:13px;">Loading...</div>
+                </div>
+            </div>
+
+            <!-- Google Drive Datasets -->
+            <div class="card" style="margin-bottom:24px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+                    <div>
+                        <div class="page-eyebrow" style="margin-bottom:4px;">Google Drive Sync</div>
+                        <div style="font-size:13px;color:var(--text-dim);">Your trained models and datasets sync
+                            automatically to Drive</div>
+                    </div>
+                </div>
+                <div
+                    style="padding:16px;background:var(--bg-elev-2);border-radius:12px;font-size:13px;color:var(--text-dim);display:flex;align-items:center;gap:12px;">
+                    <span style="font-size:24px;">🔄</span>
+                    <div>Drive sync happens automatically after each upload and training.<br />
+                        <span style="font-size:12px;color:var(--text-faint);">Files are saved to <strong
+                                style="color:var(--text);">Model Gen X/datasets/</strong> in your Google Drive.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dataset Type Toggle -->
+            <div class="card" style="margin-bottom:24px;">
+                <div style="font-size:13px;color:var(--text-dim);margin-bottom:12px;">نوع الداتاست:</div>
+                <div class="type-toggle">
+                    <button class="type-btn active" id="typeTabular" onclick="switchType('tabular')">
+                        📊 Tabular (CSV / Excel)
+                    </button>
+                    <button class="type-btn" id="typeImage" onclick="switchType('image')">
+                        🖼️ Image Dataset (ZIP)
+                    </button>
+                </div>
+
+                <!-- Image format instructions -->
+                <div id="imageInstructions" style="display:none;">
+                    <div class="image-info-banner">
+                        <strong>📦 الفورمات المطلوب لـ ZIP:</strong><br />
+                        اضغط الصور في ZIP بحيث كل فئة (class) في فولدر منفصل:<br /><br />
+                        <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text);">
+                            my_dataset.zip<br />
+                            ├── cats/<br />
+                            │&nbsp;&nbsp;&nbsp;├── img001.jpg<br />
+                            │&nbsp;&nbsp;&nbsp;└── img002.png<br />
+                            └── dogs/<br />
+                            &nbsp;&nbsp;&nbsp;&nbsp;├── img001.jpg<br />
+                            &nbsp;&nbsp;&nbsp;&nbsp;└── img002.png
+                        </span><br /><br />
+                        الصيغ المدعومة: <strong>.jpg · .jpeg · .png · .webp · .bmp · .gif</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Drop zone -->
+            <div class="drop-zone" id="dropZone">
+                <input type="file" id="fileInp" accept=".csv,.tsv,.xlsx,.xls,.parquet,.json" style="display:none;" />
+                <div class="drop-icon" id="dropIcon">↑</div>
+                <div class="drop-title" id="dropTitle">Drop your file here</div>
+                <div class="drop-sub">or <a href="#" id="browseLink" style="color:var(--accent);">browse files</a></div>
+                <div class="drop-types" id="dropTypes">.csv · .tsv · .xlsx · .xls · .parquet · .json</div>
+                <div class="progress" id="progressWrap" style="display:none;">
+                    <div class="progress-bar" id="progressBar" style="width:0%;"></div>
+                </div>
+            </div>
+
+            <!-- Google Drive import -->
+            <div class="card" style="margin-top:20px;">
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+                    <svg width="22" height="22" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3L27.5 53H0c0 1.55.4 3.1 1.2 4.5z"
+                            fill="#0066DA" />
+                        <path d="M43.65 25L29.9 0c-1.35.8-2.5 1.9-3.3 3.3L1.2 48.5A9 9 0 0 0 0 53h27.5z"
+                            fill="#00AC47" />
+                        <path
+                            d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75L86.1 57.5A9 9 0 0 0 87.3 53H59.8l5.85 11.2z"
+                            fill="#EA4335" />
+                        <path d="M43.65 25L57.4 0H29.9z" fill="#00832D" />
+                        <path d="M59.8 53H87.3c0-1.55-.4-3.1-1.2-4.5L73.55 26.15l-13.75 26.8z" fill="#2684FC" />
+                        <path d="M43.65 25L29.9 50 43.65 53l13.75-3z" fill="#FFBA00" />
+                    </svg>
+                    <div>
+                        <div style="font-weight:500;font-size:15px;">Import from Google Drive</div>
+                        <div style="font-size:12px;color:var(--text-dim);margin-top:2px;">Paste a public sharing link —
+                            file must be shared as "Anyone with the link"</div>
+                    </div>
+                </div>
+                <div style="display:flex;gap:12px;align-items:center;">
+                    <input id="driveUrl" type="url"
+                        placeholder="https://drive.google.com/file/d/... or spreadsheet link"
+                        style="flex:1;background:var(--bg-elev-2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;color:var(--text);font-size:14px;outline:none;"
+                        onfocus="this.style.borderColor='var(--accent)'"
+                        onblur="this.style.borderColor='var(--line)'" />
+                    <button class="btn btn-accent" id="driveImportBtn" style="white-space:nowrap;height:46px;">
+                        <span id="driveImportLabel">Import →</span>
+                    </button>
+                </div>
+                <div id="driveStatus"
+                    style="display:none;margin-top:12px;padding:10px 14px;border-radius:8px;font-size:13px;font-family:'JetBrains Mono',monospace;">
+                </div>
+            </div>
+
+            <!-- Kaggle import -->
+            <div class="card" style="margin-top:20px;">
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+                    <svg width="22" height="22" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="16" cy="16" r="16" fill="#20BEFF" />
+                        <path d="M23.6 24.4l-6.3-7.7 6-6.1h-3.8l-5.9 6.2V7h-3v17h3v-5l1.7-1.7 4.8 6.7z" fill="#fff" />
+                    </svg>
+                    <div>
+                        <div style="font-weight:500;font-size:15px;">Import from Kaggle</div>
+                        <div style="font-size:12px;color:var(--text-dim);margin-top:2px;">
+                            الصق الـ slug من صفحة الداتاست على Kaggle بالصيغة
+                            <span
+                                style="font-family:'JetBrains Mono',monospace;color:var(--accent);">owner/dataset-name</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display:flex;gap:12px;align-items:center;">
+                    <div style="position:relative;flex:1;">
+                        <span
+                            style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-faint);pointer-events:none;">kaggle.com/datasets/</span>
+                        <input id="kaggleSlug" type="text" placeholder="uciml/iris"
+                            style="width:100%;background:var(--bg-elev-2);border:1px solid var(--line);border-radius:10px;padding:12px 14px 12px 192px;color:var(--text);font-size:14px;outline:none;font-family:'JetBrains Mono',monospace;"
+                            onfocus="this.style.borderColor='var(--accent)'"
+                            onblur="this.style.borderColor='var(--line)'" />
+                    </div>
+                    <button class="btn btn-accent" id="kaggleImportBtn" style="white-space:nowrap;height:46px;">
+                        <span id="kaggleImportLabel">Import →</span>
+                    </button>
+                </div>
+
+                <div id="kaggleStatus" style="display:none;margin-top:12px;"></div>
+
+                <!-- Quick examples -->
+                <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                    <span
+                        style="font-size:11px;color:var(--text-faint);font-family:'JetBrains Mono',monospace;">أمثلة:</span>
+                    <button class="tag" style="cursor:pointer;"
+                        onclick="document.getElementById('kaggleSlug').value='uciml/iris'">uciml/iris</button>
+                    <button class="tag" style="cursor:pointer;"
+                        onclick="document.getElementById('kaggleSlug').value='blastchar/telco-customer-churn'">telco-churn</button>
+                    <button class="tag" style="cursor:pointer;"
+                        onclick="document.getElementById('kaggleSlug').value='mlg-ulb/creditcardfraud'">creditcard-fraud</button>
+                    <button class="tag" style="cursor:pointer;"
+                        onclick="document.getElementById('kaggleSlug').value='heptapod/uci-heart-disease'">heart-disease</button>
+                    <!-- Image dataset examples -->
+                    <span style="font-size:11px;color:var(--text-faint);font-family:'JetBrains Mono',monospace;margin-left:8px;">🖼️ صور:</span>
+                    <button class="tag" style="cursor:pointer;"
+                        onclick="document.getElementById('kaggleSlug').value='salader/dogs-vs-cats';switchType('image')">dogs-vs-cats</button>
+                    <button class="tag" style="cursor:pointer;"
+                        onclick="document.getElementById('kaggleSlug').value='puneet6060/intel-image-classification';switchType('image')">intel-images</button>
+                </div>
+
+                <div
+                    style="margin-top:14px;padding:12px 14px;background:var(--bg-elev-2);border-radius:10px;border:1px solid var(--line-soft);">
+                    <div
+                        style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-faint);margin-bottom:8px;">
+                        كيف تلاقي الـ slug؟</div>
+                    <div style="font-size:13px;color:var(--text-dim);line-height:1.7;">
+                        1. افتح أي dataset على <a href="https://kaggle.com/datasets" target="_blank"
+                            style="color:var(--accent);">kaggle.com/datasets</a><br />
+                        2. الـ slug هو الجزء في الـ URL بعد <span
+                            style="font-family:'JetBrains Mono',monospace;color:var(--text);">/datasets/</span><br />
+                        مثال: <span
+                            style="font-family:'JetBrains Mono',monospace;color:var(--accent);">nudratabbas/global-supply-chain-risk-and-logistics-2024-2026</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Preview (Tabular) -->
+            <div id="previewSection" style="display:none;margin-top:32px;">
+                <div class="page-head" style="margin-bottom:20px;">
+                    <div>
+                        <div class="page-eyebrow">/ preview</div>
+                        <h2 class="page-title" style="font-size:30px;" id="datasetName">—</h2>
+                        <p class="page-sub mono" id="datasetMeta">—</p>
+                    </div>
+                    <div class="row">
+                        <a class="btn btn-accent" id="trainCTA" href="#">Configure training →</a>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-bottom:24px;">
+                    <p class="eyebrow" style="margin-bottom:12px;">Columns</p>
+                    <div class="preview-cols" id="colsList"></div>
+                </div>
+
+                <div class="card" style="padding:0;overflow:auto;">
+                    <p class="eyebrow" style="padding:16px 20px 0;">First rows</p>
+                    <table class="table" id="headTable"></table>
+                </div>
+            </div>
+
+            <!-- Preview (Image Dataset) -->
+            <div id="imagePreviewSection" style="display:none;margin-top:32px;">
+                <div class="page-head" style="margin-bottom:20px;">
+                    <div>
+                        <div class="page-eyebrow">/ image dataset preview</div>
+                        <h2 class="page-title" style="font-size:30px;" id="imageDatasetName">—</h2>
+                        <p class="page-sub mono" id="imageDatasetMeta">—</p>
+                    </div>
+                    <div class="row">
+                        <a class="btn btn-accent" id="imageTrainCTA" href="#">Configure training →</a>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-bottom:24px;">
+                    <p class="eyebrow" style="margin-bottom:12px;">Classes detected</p>
+                    <div class="preview-cols" id="imageClassList"></div>
+                </div>
+
+                <div class="card" style="margin-bottom:24px;" id="imageSampleCard">
+                    <p class="eyebrow" style="margin-bottom:12px;">Sample images</p>
+                    <div class="image-preview-grid" id="imageSampleGrid"></div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script src="../js/common.js?v=2"></script>
+    <script src="../js/sidebar.js?v=2"></script>
+    <script>
+        (async function () {
+            if (!auth.requireAuth()) return;
+            renderSidebar('upload');
+            await loadCurrentUser();
+
+            const $ = id => document.getElementById(id);
+            const dz = $('dropZone');
+            const inp = $('fileInp');
+            let currentProjectId = null;
+            let currentDatasetId = null;
+            let currentType = 'tabular'; // 'tabular' or 'image'
+
+            // ── Type switcher ────────────────────────────────────────────────────
+            window.switchType = function (type) {
+                currentType = type;
+                $('typeTabular').classList.toggle('active', type === 'tabular');
+                $('typeImage').classList.toggle('active', type === 'image');
+                $('imageInstructions').style.display = type === 'image' ? '' : 'none';
+
+                if (type === 'tabular') {
+                    inp.accept = '.csv,.tsv,.xlsx,.xls,.parquet,.json';
+                    $('dropIcon').textContent = '↑';
+                    $('dropTitle').textContent = 'Drop your file here';
+                    $('dropTypes').textContent = '.csv · .tsv · .xlsx · .xls · .parquet · .json';
+                } else {
+                    inp.accept = '.zip';
+                    $('dropIcon').textContent = '🖼️';
+                    $('dropTitle').textContent = 'Drop your image ZIP here';
+                    $('dropTypes').textContent = '.zip (folders = classes: cats/, dogs/, etc.)';
+                }
+            };
+
+            // Load projects
+            async function refreshProjects(selectId = null) {
+                try {
+                    const projects = await api('/api/projects');
+                    const sel = $('projectSel');
+                    sel.innerHTML = projects.map(p =>
+                        `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+                    if (selectId) sel.value = selectId;
+                    if (projects.length) {
+                        currentProjectId = parseInt(sel.value, 10);
+                    } else {
+                        sel.innerHTML = `<option value="">— create one first —</option>`;
+                    }
+                    sel.onchange = () => { currentProjectId = parseInt(sel.value, 10) || null; loadMyDatasets(); };
+                    return projects;
+                } catch (e) { toast(e.message, 'error'); }
+            }
+            await refreshProjects();
+            await loadMyDatasets();
+
+            async function loadMyDatasets() {
+                if (!currentProjectId) return;
+                const list = $('myDatasetsList');
+                try {
+                    const datasets = await api(`/api/datasets/project/${currentProjectId}`);
+                    if (!datasets.length) {
+                        list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-faint);font-size:13px;">No datasets yet — upload one below!</div>';
+                        return;
+                    }
+                    list.innerHTML = datasets.map(ds => {
+                        const isImg = ds.dataset_type === 'image';
+                        return `
+                        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bg-elev-2);border:1px solid var(--line);border-radius:10px;margin-bottom:8px;">
+                            <div style="display:flex;align-items:center;gap:12px;min-width:0;">
+                                <span style="font-size:20px;flex-shrink:0;">${isImg ? '🖼️' : '📊'}</span>
+                                <div style="min-width:0;">
+                                    <div style="font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(ds.filename)}</div>
+                                    <div style="font-size:12px;color:var(--text-faint);">
+                                        ${isImg
+                                ? `${(ds.n_rows || 0).toLocaleString()} images · ${ds.n_cols || 0} classes`
+                                : `${(ds.n_rows || 0).toLocaleString()} rows · ${ds.n_cols || 0} cols`
+                            } · ${ds.size_mb ? ds.size_mb.toFixed(1) + 'MB' : ''}
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="display:flex;gap:8px;flex-shrink:0;margin-left:12px;">
+                                <button onclick="useDataset(${ds.id},'${escapeHtml(ds.filename)}')"
+                                    style="background:var(--accent-soft);border:1px solid var(--accent);color:var(--accent);border-radius:8px;padding:6px 12px;cursor:pointer;font-size:12px;">
+                                    Use
+                                </button>
+                                <button onclick="deleteDataset(${ds.id},'${escapeHtml(ds.filename)}')"
+                                    style="background:none;border:1px solid #F85149;color:#F85149;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:12px;transition:all .15s;"
+                                    onmouseover="this.style.background='rgba(248,81,73,.1)'"
+                                    onmouseout="this.style.background='none'">
+                                    🗑 Delete
+                                </button>
+                            </div>
+                        </div>
+                    `}).join('');
+                } catch (e) {
+                    list.innerHTML = `<div style="color:#F85149;font-size:13px;padding:12px;">${e.message}</div>`;
+                }
+            }
+
+            window.deleteDataset = async function (dsId, dsName) {
+                if (!confirm(`Delete "${dsName}"?\n\nThis will remove it from your account and Google Drive.`)) return;
+                try {
+                    await api(`/api/datasets/${dsId}`, { method: 'DELETE' });
+                    toast(`"${dsName}" deleted ✓`, 'success');
+                    await loadMyDatasets();
+                } catch (e) { toast(e.message, 'error'); }
+            };
+
+            window.useDataset = function (dsId, dsName) {
+                currentDatasetId = dsId;
+                toast(`Using "${dsName}" ✓`, 'success');
+                window.location.href = `training.html?dataset=${dsId}&project=${currentProjectId}`;
+            };
+
+            // If no projects exist, prompt
+            if (!currentProjectId) {
+                const name = prompt('Name your first project:', 'My first project');
+                if (name) {
+                    try {
+                        const p = await api('/api/projects', { method: 'POST', body: { name } });
+                        await refreshProjects(p.id);
+                    } catch (e) { toast(e.message, 'error'); }
+                }
+            }
+
+            $('newProjectBtn').onclick = async () => {
+                const name = prompt('Project name:');
+                if (!name) return;
+                try {
+                    const p = await api('/api/projects', { method: 'POST', body: { name } });
+                    await refreshProjects(p.id);
+                    toast('Project created.', 'success');
+                } catch (e) { toast(e.message, 'error'); }
+            };
+
+            // Drag-drop
+            $('browseLink').onclick = (e) => { e.preventDefault(); inp.click(); };
+            dz.addEventListener('click', () => inp.click());
+            ['dragover'].forEach(ev => dz.addEventListener(ev, e => {
+                e.preventDefault(); dz.classList.add('dragover');
+            }));
+            ['dragleave', 'drop'].forEach(ev => dz.addEventListener(ev, e => {
+                e.preventDefault(); dz.classList.remove('dragover');
+            }));
+            dz.addEventListener('drop', (e) => {
+                if (e.dataTransfer.files.length) uploadFile(e.dataTransfer.files[0]);
+            });
+            inp.addEventListener('change', () => {
+                if (inp.files.length) uploadFile(inp.files[0]);
+            });
+
+            async function uploadFile(file) {
+                if (!currentProjectId) {
+                    toast('Pick or create a project first.', 'error');
+                    return;
+                }
+
+                // Auto-detect ZIP → switch to image mode
+                if (file.name.endsWith('.zip') && currentType === 'tabular') {
+                    switchType('image');
+                }
+
+                $('progressWrap').style.display = '';
+                $('progressBar').style.width = '20%';
+
+                const fd = new FormData();
+                fd.append('project_id', currentProjectId);
+                fd.append('file', file);
+                // Tell backend the dataset type
+                fd.append('dataset_type', currentType);
+
+                try {
+                    $('progressBar').style.width = '55%';
+                    const endpoint = currentType === 'image'
+                        ? '/api/datasets/upload-images'
+                        : '/api/datasets/upload';
+                    const res = await api(endpoint, { method: 'POST', body: fd });
+                    $('progressBar').style.width = '100%';
+                    currentDatasetId = res.dataset_id;
+
+                    if (currentType === 'image') {
+                        renderImagePreview(file.name, res);
+                    } else {
+                        renderPreview(file.name, res);
+                    }
+
+                    toast('Dataset uploaded.', 'success');
+                    await loadMyDatasets();
+                } catch (e) {
+                    toast(e.message, 'error');
+                    $('progressWrap').style.display = 'none';
+                }
+            }
+
+            // ── Tabular preview ──────────────────────────────────────────────────
+            function renderPreview(filename, info) {
+                if (info.drive_link) {
+                    const existing = document.getElementById('driveSyncBanner');
+                    if (existing) existing.remove();
+                    const banner = document.createElement('div');
+                    banner.id = 'driveSyncBanner';
+                    banner.style.cssText = 'margin-top:16px;padding:14px 18px;background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.3);border-radius:12px;display:flex;align-items:center;gap:12px;font-size:14px;';
+                    banner.innerHTML = `
+                        <span style="font-size:20px;">☁️</span>
+                        <div style="flex:1;">
+                            <strong style="color:var(--accent);">Saved to your Google Drive</strong>
+                            <div style="font-size:12px;color:var(--text-dim);margin-top:2px;">Model Gen X → datasets</div>
+                        </div>
+                        <a href="${info.drive_link}" target="_blank"
+                           style="padding:8px 16px;background:var(--accent);color:#06121A;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap;">
+                            View on Drive ↗
+                        </a>
+                    `;
+                    document.querySelector('.main').insertBefore(banner, document.getElementById('previewSection'));
+                }
+
+                $('imagePreviewSection').style.display = 'none';
+                $('previewSection').style.display = '';
+                $('datasetName').textContent = filename;
+                $('datasetMeta').textContent = `${info.n_rows.toLocaleString()} rows · ${info.n_cols} columns`;
+                $('trainCTA').href = `training.html?dataset=${currentDatasetId}&project=${currentProjectId}`;
+
+                $('colsList').innerHTML = info.columns.map(c => `
+                    <div class="preview-col">
+                        <div class="preview-col-name">${escapeHtml(c.name)}</div>
+                        <div class="preview-col-meta">${escapeHtml(c.dtype)} · ${c.n_missing} missing · ${c.n_unique} unique</div>
+                    </div>
+                `).join('');
+
+                if (info.head && info.head.length) {
+                    const cols = info.columns.map(c => c.name);
+                    $('headTable').innerHTML = `
+                        <thead><tr>${cols.map(c => `<th>${escapeHtml(c)}</th>`).join('')}</tr></thead>
+                        <tbody>${info.head.map(row =>
+                        `<tr>${cols.map(c =>
+                            `<td class="mono" style="font-size:12px;">${escapeHtml(row[c] === null || row[c] === undefined ? '—' : String(row[c]))}</td>`
+                        ).join('')}</tr>`
+                    ).join('')}</tbody>`;
+                }
+
+                $('previewSection').scrollIntoView({ behavior: 'smooth' });
+            }
+
+            // ── Image dataset preview ────────────────────────────────────────────
+            function renderImagePreview(filename, info) {
+                $('previewSection').style.display = 'none';
+                $('imagePreviewSection').style.display = '';
+
+                $('imageDatasetName').textContent = filename;
+                const totalImages = info.n_rows || (info.classes || []).reduce((s, c) => s + (c.count || 0), 0);
+                const nClasses = info.n_cols || (info.classes || []).length;
+                $('imageDatasetMeta').textContent = `${totalImages.toLocaleString()} images · ${nClasses} classes`;
+                $('imageTrainCTA').href = `training.html?dataset=${currentDatasetId}&project=${currentProjectId}&type=image`;
+
+                // Classes list
+                const classes = info.classes || [];
+                if (classes.length) {
+                    $('imageClassList').innerHTML = classes.map(cls => `
+                        <div class="image-class-card">
+                            <div class="image-class-icon">🏷️</div>
+                            <div>
+                                <div class="image-class-name">${escapeHtml(cls.name)}</div>
+                                <div class="image-class-count">${(cls.count || 0).toLocaleString()} images</div>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    // Fallback if backend doesn't return classes breakdown
+                    $('imageClassList').innerHTML = `
+                        <div class="image-class-card">
+                            <div class="image-class-icon">📦</div>
+                            <div>
+                                <div class="image-class-name">Dataset uploaded</div>
+                                <div class="image-class-count">${totalImages.toLocaleString()} images total</div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Sample images (if backend returns base64 previews)
+                const samples = info.samples || [];
+                if (samples.length) {
+                    $('imageSampleCard').style.display = '';
+                    $('imageSampleGrid').innerHTML = samples.map(s => `
+                        <img class="image-thumb"
+                             src="${s.startsWith('data:') ? s : 'data:image/jpeg;base64,' + s}"
+                             alt="sample" loading="lazy" />
+                    `).join('');
+                } else {
+                    $('imageSampleCard').style.display = 'none';
+                }
+
+                $('imagePreviewSection').scrollIntoView({ behavior: 'smooth' });
+            }
+
+            // ── Kaggle import ────────────────────────────────────────────────────
+            $('kaggleImportBtn').addEventListener('click', async () => {
+                const slug = $('kaggleSlug').value.trim();
+                if (!slug) { showKaggleStatus('أدخل الـ slug أولاً (مثال: uciml/iris)', 'error'); return; }
+                if (!currentProjectId) { showKaggleStatus('اختر مشروع أولاً.', 'error'); return; }
+
+                $('kaggleImportBtn').disabled = true;
+                $('kaggleImportLabel').textContent = 'جاري التحميل…';
+                showKaggleStatus(`⏳ جاري تحميل ${slug} من Kaggle…`, 'info');
+
+                try {
+                    const res = await api('/api/kaggle/import', {
+                        method: 'POST',
+                        body: { slug, project_id: currentProjectId, dataset_type: currentType },
+                    });
+                    currentDatasetId = res.dataset_id;
+
+                    // Auto-detect from response
+                    const isImage = res.dataset_type === 'image' || currentType === 'image';
+
+                    if (isImage) {
+                        showKaggleStatus(`✓ تم — ${(res.n_rows || 0).toLocaleString()} صورة × ${res.n_cols || 0} فئة`, 'success');
+                        renderImagePreview(slug, res);
+                    } else {
+                        showKaggleStatus(`✓ تم — ${res.n_rows.toLocaleString()} صف × ${res.n_cols} عمود`, 'success');
+                        renderPreview(slug, res);
+                    }
+
+                    toast('تم استيراد داتاست Kaggle بنجاح ✓', 'success');
+                } catch (e) {
+                    showKaggleStatus(`✖ ${e.message}`, 'error');
+                } finally {
+                    $('kaggleImportBtn').disabled = false;
+                    $('kaggleImportLabel').textContent = 'Import →';
+                }
+            });
+
+            $('kaggleSlug').addEventListener('keydown', e => {
+                if (e.key === 'Enter') $('kaggleImportBtn').click();
+            });
+
+            function showKaggleStatus(msg, type) {
+                const el = $('kaggleStatus');
+                const styles = {
+                    error: 'background:rgba(248,81,73,0.12);border:1px solid rgba(248,81,73,0.35);color:#F85149;',
+                    success: 'background:rgba(63,185,80,0.12);border:1px solid rgba(63,185,80,0.35);color:#3FB950;',
+                    info: 'background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.25);color:var(--text-dim);',
+                };
+                el.style.cssText = `display:block;margin-top:12px;padding:10px 14px;border-radius:8px;font-size:13px;font-family:'JetBrains Mono',monospace;${styles[type] || styles.info}`;
+                el.textContent = msg;
+            }
+
+            // ── Google Drive import ──────────────────────────────────────────────
+            $('driveImportBtn').addEventListener('click', async () => {
+                const url = $('driveUrl').value.trim();
+                if (!url) { showDriveStatus('Paste a Google Drive link first.', 'error'); return; }
+                if (!currentProjectId) { showDriveStatus('Pick or create a project first.', 'error'); return; }
+
+                $('driveImportBtn').disabled = true;
+                $('driveImportLabel').textContent = 'Downloading…';
+                showDriveStatus('⏳ Connecting to Google Drive…', 'info');
+
+                try {
+                    const res = await api('/api/drive/import', {
+                        method: 'POST',
+                        body: { url, project_id: currentProjectId, dataset_type: currentType },
+                    });
+                    currentDatasetId = res.dataset_id;
+
+                    const isImage = res.dataset_type === 'image' || currentType === 'image';
+                    if (isImage) {
+                        showDriveStatus(`✓ Imported — ${(res.n_rows || 0).toLocaleString()} images × ${res.n_cols || 0} classes`, 'success');
+                        renderImagePreview('Google Drive file', res);
+                    } else {
+                        showDriveStatus(`✓ Imported — ${res.n_rows.toLocaleString()} rows × ${res.n_cols} cols`, 'success');
+                        renderPreview('Google Drive file', res);
+                    }
+
+                    toast('Drive dataset imported.', 'success');
+                } catch (e) {
+                    showDriveStatus(`✖ ${e.message}`, 'error');
+                    toast(e.message, 'error');
+                } finally {
+                    $('driveImportBtn').disabled = false;
+                    $('driveImportLabel').textContent = 'Import →';
+                }
+            });
+
+            function showDriveStatus(msg, type) {
+                const el = $('driveStatus');
+                el.style.display = '';
+                const colors = {
+                    error: ['rgba(248,81,73,0.12)', '1px solid rgba(248,81,73,0.35)', '#F85149'],
+                    success: ['rgba(63,185,80,0.12)', '1px solid rgba(63,185,80,0.35)', '#3FB950'],
+                    info: ['rgba(0,229,255,0.08)', '1px solid rgba(0,229,255,0.25)', 'var(--text-dim)'],
+                };
+                const [bg, border, color] = colors[type] || colors.info;
+                el.style.cssText = `display:block;margin-top:12px;padding:10px 14px;border-radius:8px;font-size:13px;font-family:'JetBrains Mono',monospace;background:${bg};border:${border};color:${color};`;
+                el.textContent = msg;
+            }
+
+            function escapeHtml(s) {
+                return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+            }
+        })();
+    </script>
+</body>
+
+</html>

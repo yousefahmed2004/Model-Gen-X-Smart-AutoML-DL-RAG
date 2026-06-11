@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="api-base" content="https://modelgenx.site" />
+    <title>Dashboard — Model Gen X</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Inter:wght@300..600&family=JetBrains+Mono:wght@400..600&family=Cairo:wght@300..700&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="../css/main.css" />
+    <link rel="stylesheet" href="../css/app.css" />
+</head>
+
+<body>
+    <div class="app-shell">
+        <aside class="sidebar"></aside>
+
+        <main class="main">
+            <div class="page-head">
+                <div>
+                    <div class="page-eyebrow">/ overview</div>
+                    <h1 class="page-title">Hello, <span id="greetName">there</span>.</h1>
+                    <p class="page-sub">Here's what your workspace looks like today.</p>
+                </div>
+                <div class="row">
+                    <a class="btn btn-ghost" href="upload.html">+ New dataset</a>
+                    <a class="btn btn-accent" href="chat.html">Open AI chat →</a>
+                </div>
+            </div>
+
+            <!-- Stat tiles -->
+            <div class="tile-grid" id="tileGrid">
+                <div class="tile">
+                    <div class="tile-label">Projects</div>
+                    <div class="tile-value" id="statProjects">—</div>
+                    <svg class="tile-spark" viewBox="0 0 100 28" preserveAspectRatio="none">
+                        <polyline fill="none" stroke="var(--accent)" stroke-width="1.5"
+                            points="0,20 15,18 30,14 45,16 60,10 75,8 90,4 100,6" />
+                    </svg>
+                </div>
+                <div class="tile">
+                    <div class="tile-label">Models trained</div>
+                    <div class="tile-value" id="statModels">—</div>
+                    <svg class="tile-spark" viewBox="0 0 100 28" preserveAspectRatio="none">
+                        <polyline fill="none" stroke="var(--accent)" stroke-width="1.5"
+                            points="0,22 12,20 24,17 36,18 48,12 60,14 72,8 84,5 100,3" />
+                    </svg>
+                </div>
+                <div class="tile">
+                    <div class="tile-label">Tokens left</div>
+                    <div class="tile-value" id="statTokens">—<small>/ 1,000</small></div>
+                    <svg class="tile-spark" viewBox="0 0 100 28" preserveAspectRatio="none">
+                        <polyline fill="none" stroke="var(--accent)" stroke-width="1.5"
+                            points="0,5 20,8 40,10 60,16 80,18 100,22" />
+                    </svg>
+                </div>
+                <div class="tile">
+                    <div class="tile-label">GPU status</div>
+                    <div class="tile-value" style="font-size:24px;color:var(--good);"><span class="tag-dot"
+                            style="background:var(--good);box-shadow:0 0 8px var(--good);display:inline-block;margin-right:8px;"></span>Idle
+                    </div>
+                    <div class="mono" style="margin-top:10px;font-size:11px;color:var(--text-faint);">local cpu · kaggle
+                        stubbed</div>
+                </div>
+            </div>
+
+            <!-- Two-column lower section -->
+            <div class="grid-2" style="margin-top:32px;">
+                <div class="card" style="padding:0;">
+                    <div
+                        style="padding:20px 24px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;">
+                        <div>
+                            <p class="eyebrow">/ recent projects</p>
+                            <h3 style="font-family:'Fraunces',serif;font-size:22px;margin-top:6px;">Your work</h3>
+                        </div>
+                        <a class="btn btn-ghost" href="upload.html" style="padding:8px 14px;font-size:13px;">+ New</a>
+                    </div>
+                    <div id="projectsTable"></div>
+                </div>
+
+                <div class="card" style="padding:0;">
+                    <div style="padding:20px 24px;border-bottom:1px solid var(--line);">
+                        <p class="eyebrow">/ activity</p>
+                        <h3 style="font-family:'Fraunces',serif;font-size:22px;margin-top:6px;">Timeline</h3>
+                    </div>
+                    <div id="activityTimeline" style="padding:8px 0;"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../js/common.js?v=2"></script>
+    <script src="../js/sidebar.js?v=2"></script>
+    <script>
+        (async function () {
+            if (!auth.requireAuth()) return;
+            renderSidebar('dashboard');
+            const user = await loadCurrentUser();
+            if (user) {
+                document.getElementById('greetName').textContent = (user.name || user.email.split('@')[0]).split(' ')[0];
+                document.getElementById('statTokens').innerHTML = `${user.tokens.toLocaleString()}<small> tokens</small>`;
+            }
+
+            // Load projects
+            try {
+                const projects = await api('/api/projects');
+                document.getElementById('statProjects').textContent = projects.length;
+
+                // Models count: count via per-project fetch isn't great. Sum heuristically: 0 for now, replace with API
+                let modelCount = 0;
+                for (const p of projects.slice(0, 5)) {
+                    try {
+                        const m = await api(`/api/training/models/project/${p.id}`);
+                        modelCount += m.length;
+                    } catch { }
+                }
+                document.getElementById('statModels').textContent = modelCount;
+
+                const table = document.getElementById('projectsTable');
+                if (!projects.length) {
+                    table.innerHTML = `
+                <div class="empty" style="padding:40px 20px;">
+                    <div class="empty-art">∅</div>
+                    <h3>No projects yet</h3>
+                    <p>Upload a dataset to start your first model.</p>
+                    <a class="btn btn-accent" href="upload.html" style="margin-top:14px;">Upload dataset →</a>
+                </div>`;
+                } else {
+                    table.innerHTML = `
+                <table class="table">
+                    <thead><tr><th>Name</th><th>Status</th><th>Type</th><th>Updated</th></tr></thead>
+                    <tbody>
+                        ${projects.slice(0, 8).map(p => `
+                            <tr style="cursor:pointer;" onclick="location.href='training.html?project=${p.id}'">
+                                <td><strong>${escapeHtml(p.name)}</strong></td>
+                                <td><span class="tag ${p.status === 'completed' ? 'tag-accent' : ''}">${p.status}</span></td>
+                                <td class="mono" style="color:var(--text-dim);font-size:12px;">${p.task_type}</td>
+                                <td style="color:var(--text-dim);font-size:13px;">${new Date(p.updated_at).toLocaleDateString()}</td>
+                            </tr>`).join('')}
+                    </tbody>
+                </table>`;
+                }
+
+                // Activity (synthetic, based on projects)
+                const tl = document.getElementById('activityTimeline');
+                if (!projects.length) {
+                    tl.innerHTML = `<div class="empty" style="padding:40px 20px;"><div class="empty-art">·</div><p>Nothing here yet.</p></div>`;
+                } else {
+                    tl.innerHTML = projects.slice(0, 8).map(p => `
+                <div style="display:flex;gap:14px;padding:14px 24px;border-bottom:1px solid var(--line-soft);align-items:flex-start;">
+                    <span class="tag-dot" style="margin-top:6px;"></span>
+                    <div style="flex:1;">
+                        <div style="font-size:14px;">Project <strong>${escapeHtml(p.name)}</strong> · <span class="mono" style="color:var(--text-dim);font-size:11px;">${p.status}</span></div>
+                        <div class="mono" style="font-size:11px;color:var(--text-faint);margin-top:2px;">${new Date(p.updated_at).toLocaleString()}</div>
+                    </div>
+                </div>
+            `).join('');
+                }
+            } catch (e) {
+                toast(e.message, 'error');
+            }
+
+            function escapeHtml(s) {
+                return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+            }
+        })();
+    </script>
+</body>
+
+</html>

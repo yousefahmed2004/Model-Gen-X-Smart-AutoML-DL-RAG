@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="api-base" content="https://modelgenx.site" />
+<title>Results — Model Gen X</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Inter:wght@300..600&family=JetBrains+Mono:wght@400..600&family=Cairo:wght@300..700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../css/main.css" />
+<link rel="stylesheet" href="../css/app.css" />
+<style>
+.model-card{background:var(--bg-elev);border:1px solid var(--line);border-radius:14px;padding:24px;margin-bottom:14px;transition:border-color .2s;}
+.model-card:hover{border-color:var(--text-dim);}
+.model-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:16px;}
+.model-title{font-family:'Fraunces',serif;font-size:24px;letter-spacing:-.02em;margin-bottom:4px;}
+.model-meta{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-faint);}
+.model-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;padding-top:16px;border-top:1px solid var(--line-soft);}
+.mm{display:flex;flex-direction:column;gap:2px;}
+.mm-l{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;color:var(--text-faint);text-transform:uppercase;}
+.mm-v{font-family:'Fraunces',serif;font-size:24px;color:var(--accent);letter-spacing:-.02em;}
+</style>
+</head>
+<body>
+<div class="app-shell">
+    <aside class="sidebar"></aside>
+    <main class="main">
+        <div class="page-head">
+            <div>
+                <div class="page-eyebrow">/ models</div>
+                <h1 class="page-title">Trained models.</h1>
+                <p class="page-sub">Every model you've built lives here.</p>
+            </div>
+            <div class="row">
+                <select id="projectFilter" class="mono" style="background:var(--bg-elev);border:1px solid var(--line);border-radius:8px;padding:8px 14px;font-size:13px;color:var(--text);">
+                    <option value="">— all projects —</option>
+                </select>
+            </div>
+        </div>
+        <div id="modelsList"></div>
+    </main>
+</div>
+
+<script src="../js/common.js?v=2"></script>
+<script src="../js/sidebar.js?v=2"></script>
+<script>
+(async function () {
+    if (!auth.requireAuth()) return;
+    renderSidebar('results');
+    await loadCurrentUser();
+
+    const $ = id => document.getElementById(id);
+
+    async function load() {
+        try {
+            const projects = await api('/api/projects');
+            $('projectFilter').innerHTML = `<option value="">— all projects —</option>` +
+                projects.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+            $('projectFilter').onchange = render;
+            render();
+        } catch (e) { toast(e.message, 'error'); }
+    }
+
+    async function render() {
+        const filter = $('projectFilter').value;
+        try {
+            const projects = await api('/api/projects');
+            const all = [];
+            for (const p of projects) {
+                if (filter && String(p.id) !== filter) continue;
+                try {
+                    const models = await api(`/api/training/models/project/${p.id}`);
+                    models.forEach(m => all.push({ ...m, project_name: p.name }));
+                } catch {}
+            }
+            const list = $('modelsList');
+            if (!all.length) {
+                list.innerHTML = `
+                    <div class="empty">
+                        <div class="empty-art">∅</div>
+                        <h3>No trained models yet</h3>
+                        <p>Upload a dataset and train your first model.</p>
+                        <a class="btn btn-accent" href="upload.html" style="margin-top:16px;">Upload data →</a>
+                    </div>`;
+                return;
+            }
+            list.innerHTML = all.map(m => modelCard(m)).join('');
+        } catch (e) { toast(e.message, 'error'); }
+    }
+
+    function modelCard(m) {
+        const metrics = [];
+        if (m.accuracy  != null) metrics.push(['accuracy',  m.accuracy.toFixed(3)]);
+        if (m.precision != null) metrics.push(['precision', m.precision.toFixed(3)]);
+        if (m.recall    != null) metrics.push(['recall',    m.recall.toFixed(3)]);
+        if (m.f1        != null) metrics.push(['f1',        m.f1.toFixed(3)]);
+        return `
+            <div class="model-card">
+                <div class="model-card-head">
+                    <div>
+                        <div class="model-title">${escapeHtml(m.name)}</div>
+                        <div class="model-meta">
+                            ${escapeHtml(m.project_name)} · ${m.framework} · ${m.task_type} ·
+                            target: ${m.target_column||'—'} ·
+                            ${new Date(m.created_at).toLocaleString()}
+                        </div>
+                    </div>
+                    <div>
+                        <div class="row" style="gap:8px;">
+                            <button class="btn btn-ghost dl-btn" data-id="${m.id}" data-name="${escapeHtml(m.name)}" style="padding:8px 14px;font-size:13px;">⬇ Download</button>
+                            <a class="btn btn-accent" href="playground.html?model=${m.id}" style="padding:8px 14px;font-size:13px;">Try it →</a>
+                        </div>
+                        <div id="dlprog_${m.id}" style="display:none;margin-top:10px;">
+                            <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-dim);margin-bottom:4px;">
+                                <span id="dltext_${m.id}">Preparing…</span>
+                                <span id="dlpct_${m.id}" style="color:var(--accent);">0%</span>
+                            </div>
+                            <div style="background:var(--bg-elev-2);border-radius:999px;height:5px;overflow:hidden;">
+                                <div id="dlbar_${m.id}" style="height:100%;width:0%;background:var(--accent);border-radius:999px;transition:width .3s ease;box-shadow:0 0 8px var(--accent);"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                ${metrics.length ? `
+                    <div class="model-metrics">
+                        ${metrics.map(([l,v]) => `<div class="mm"><span class="mm-l">${l}</span><span class="mm-v">${v}</span></div>`).join('')}
+                    </div>` : ''}
+            </div>`;
+    }
+
+    function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    await load();
+
+    // Download with progress bar
+    document.addEventListener('click', async e => {
+        const btn = e.target.closest('.dl-btn');
+        if (!btn) return;
+        const modelId   = btn.dataset.id;
+        const modelName = btn.dataset.name;
+
+        const prog = document.getElementById(`dlprog_${modelId}`);
+        const bar  = document.getElementById(`dlbar_${modelId}`);
+        const pct  = document.getElementById(`dlpct_${modelId}`);
+        const txt  = document.getElementById(`dltext_${modelId}`);
+        const set  = (p, t) => { bar.style.width=p+'%'; pct.textContent=p+'%'; txt.textContent=t; };
+
+        prog.style.display = '';
+        btn.disabled = true;
+        btn.textContent = '⏳';
+        set(10, 'Connecting…');
+
+        const iv = setInterval(() => {
+            const cur = parseInt(bar.style.width) || 10;
+            if (cur < 85) set(cur + 7, 'Downloading…');
+        }, 350);
+
+        try {
+            const res = await fetch(`${window.API_BASE}/api/training/models/${modelId}/download`, {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('saa.token')}` }
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            clearInterval(iv);
+            set(90, 'Saving…');
+
+            const blob = await res.blob();
+            const url  = URL.createObjectURL(blob);
+            const a    = document.createElement('a');
+            a.href = url;
+            a.download = `model_${modelId}_${(modelName||'model').replace(/\s+/g,'_')}.joblib`;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            set(100, '✅ Done!');
+            bar.style.background = '#3FB950';
+            bar.style.boxShadow  = '0 0 8px #3FB950';
+            btn.textContent = '✓';
+            btn.disabled = false;
+            setTimeout(() => { prog.style.display='none'; bar.style.width='0%'; bar.style.background='var(--accent)'; btn.textContent='⬇ Download'; }, 2500);
+
+        } catch(err) {
+            clearInterval(iv);
+            set(100, '✖ ' + err.message);
+            bar.style.background = '#F85149';
+            btn.disabled = false;
+            btn.textContent = '⬇ Download';
+        }
+    });
+})();
+</script>
+</body>
+</html>

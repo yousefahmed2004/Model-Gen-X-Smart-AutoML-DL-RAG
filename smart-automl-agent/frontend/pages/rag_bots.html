@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="api-base" content="https://modelgenx.site"/>
+<title>RAG Bots — Model Gen X</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Inter:wght@300..600&family=JetBrains+Mono:wght@400..600&family=Cairo:wght@300..700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../css/main.css"/>
+<link rel="stylesheet" href="../css/app.css"/>
+<style>
+.bot-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px;margin-top:8px;}
+.bot-card{background:var(--bg-elev);border:1px solid var(--line);border-radius:16px;padding:24px;transition:border-color .2s,transform .2s;cursor:pointer;}
+.bot-card:hover{border-color:var(--accent);transform:translateY(-2px);}
+.bot-card-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;}
+.bot-name{font-family:'Fraunces',serif;font-size:22px;letter-spacing:-.02em;}
+.bot-desc{font-size:13px;color:var(--text-dim);margin-bottom:16px;line-height:1.5;}
+.bot-stats{display:flex;gap:16px;flex-wrap:wrap;}
+.bot-stat{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-faint);}
+.bot-stat strong{color:var(--accent);font-size:14px;display:block;margin-bottom:2px;}
+.status-badge{padding:4px 10px;border-radius:999px;font-size:11px;font-family:'JetBrains Mono',monospace;}
+.status-ready{background:rgba(63,185,80,.15);color:#3FB950;border:1px solid rgba(63,185,80,.3);}
+.status-building{background:rgba(210,153,34,.15);color:#D29922;border:1px solid rgba(210,153,34,.3);}
+.status-empty{background:var(--bg-elev-2);color:var(--text-faint);border:1px solid var(--line);}
+.status-failed{background:rgba(248,81,73,.15);color:#F85149;border:1px solid rgba(248,81,73,.3);}
+.bot-actions{display:flex;gap:8px;margin-top:16px;padding-top:16px;border-top:1px solid var(--line-soft);}
+.create-card{background:var(--bg-elev);border:2px dashed var(--line);border-radius:16px;padding:40px;text-align:center;cursor:pointer;transition:all .2s;}
+.create-card:hover{border-color:var(--accent);background:var(--accent-soft);}
+.create-icon{font-size:32px;margin-bottom:12px;}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.modal-box{background:var(--bg-elev);border:1px solid var(--line);border-radius:20px;padding:36px;width:500px;max-width:95vw;}
+.modal-title{font-family:'Fraunces',serif;font-size:24px;margin-bottom:20px;}
+</style>
+</head>
+<body>
+<div class="app-shell">
+    <aside class="sidebar"></aside>
+    <main class="main">
+        <div class="page-head">
+            <div>
+                <div class="page-eyebrow">/ rag bots</div>
+                <h1 class="page-title">Your RAG Bots.</h1>
+                <p class="page-sub">Build chatbots from your documents — PDF, DOCX, TXT.</p>
+            </div>
+        </div>
+
+        <div class="bot-grid" id="botGrid">
+            <div style="text-align:center;padding:60px;color:var(--text-faint);">Loading...</div>
+        </div>
+    </main>
+</div>
+
+<!-- Create Bot Modal -->
+<div class="modal-overlay" id="createModal" style="display:none;">
+    <div class="modal-box">
+        <h2 class="modal-title">Create RAG Bot</h2>
+        <div class="field" style="margin-bottom:14px;">
+            <label>Bot Name *</label>
+            <input type="text" id="botName" placeholder="e.g. Customer Support Bot" style="background:var(--bg-elev-2);border:1px solid var(--line);border-radius:10px;padding:12px 16px;color:var(--text);width:100%;font-size:15px;"/>
+        </div>
+        <div class="field" style="margin-bottom:14px;">
+            <label>Description</label>
+            <input type="text" id="botDesc" placeholder="What does this bot do?" style="background:var(--bg-elev-2);border:1px solid var(--line);border-radius:10px;padding:12px 16px;color:var(--text);width:100%;font-size:15px;"/>
+        </div>
+        <div class="field" style="margin-bottom:20px;">
+            <label>System Prompt</label>
+            <textarea id="botPrompt" rows="3" placeholder="You are a helpful assistant. Answer based on the provided documents." style="background:var(--bg-elev-2);border:1px solid var(--line);border-radius:10px;padding:12px 16px;color:var(--text);width:100%;font-size:14px;resize:vertical;"></textarea>
+        </div>
+        <div style="display:flex;gap:10px;">
+            <button class="btn btn-accent" id="createBotBtn" style="flex:1;height:46px;">Create Bot</button>
+            <button class="btn btn-ghost" onclick="closeModal()" style="height:46px;">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<script src="../js/common.js?v=2"></script>
+<script src="../js/sidebar.js?v=2"></script>
+<script>
+(async function(){
+    if (!auth.requireAuth()) return;
+    renderSidebar('rag');
+    await loadCurrentUser();
+    await loadBots();
+})();
+
+async function loadBots() {
+    const grid = document.getElementById('botGrid');
+    try {
+        const bots = await api('/api/rag');
+        grid.innerHTML = '';
+
+        // Create card always first
+        const createCard = document.createElement('div');
+        createCard.className = 'create-card';
+        createCard.innerHTML = `
+            <div class="create-icon">+</div>
+            <div style="font-weight:600;font-size:16px;margin-bottom:6px;">New RAG Bot</div>
+            <div style="font-size:13px;color:var(--text-dim);">Upload documents and build a chatbot</div>
+            <div style="font-size:12px;color:var(--text-faint);margin-top:8px;">200 tokens (under 5MB) · 500 tokens (over 5MB)</div>
+        `;
+        createCard.onclick = () => document.getElementById('createModal').style.display = 'flex';
+        grid.appendChild(createCard);
+
+        bots.forEach(b => {
+            const card = document.createElement('div');
+            card.className = 'bot-card';
+            card.innerHTML = `
+                <div class="bot-card-head">
+                    <div class="bot-name">${escapeHtml(b.name)}</div>
+                    <span class="status-badge status-${b.status}">${b.status}</span>
+                </div>
+                <div class="bot-desc">${escapeHtml(b.description || 'No description')}</div>
+                <div class="bot-stats">
+                    <div class="bot-stat"><strong>${b.n_documents}</strong>documents</div>
+                    <div class="bot-stat"><strong>${b.n_chunks}</strong>chunks</div>
+                    <div class="bot-stat"><strong>${b.total_size_mb} MB</strong>size</div>
+                </div>
+                <div class="bot-actions">
+                    <button class="btn btn-accent" onclick="openBot(${b.id})" style="flex:1;padding:10px;">Open Bot</button>
+                    <button class="btn btn-ghost" onclick="deleteBot(${b.id},event)" style="padding:10px 14px;color:#F85149;border-color:#F85149;">Delete</button>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+    } catch(e) { toast(e.message, 'error'); }
+}
+
+function openBot(id) { location.href = `rag_builder.html?bot=${id}`; }
+
+async function deleteBot(id, e) {
+    e.stopPropagation();
+    if (!confirm('Delete this bot?')) return;
+    try {
+        await api(`/api/rag/${id}`, { method: 'DELETE' });
+        toast('Bot deleted', 'success');
+        await loadBots();
+    } catch(e) { toast(e.message, 'error'); }
+}
+
+function closeModal() { document.getElementById('createModal').style.display = 'none'; }
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('createBotBtn')?.addEventListener('click', async () => {
+        const name   = document.getElementById('botName').value.trim();
+        const desc   = document.getElementById('botDesc').value.trim();
+        const prompt = document.getElementById('botPrompt').value.trim();
+        if (!name) { toast('Enter a bot name', 'error'); return; }
+
+        const btn = document.getElementById('createBotBtn');
+        btn.disabled = true; btn.textContent = 'Creating...';
+        try {
+            const bot = await api('/api/rag', {
+                method: 'POST',
+                body: { name, description: desc, system_prompt: prompt || undefined }
+            });
+            toast('Bot created!', 'success');
+            closeModal();
+            location.href = `rag_builder.html?bot=${bot.id}`;
+        } catch(e) {
+            toast(e.message, 'error');
+            btn.disabled = false; btn.textContent = 'Create Bot';
+        }
+    });
+});
+
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+</script>
+</body>
+</html>

@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="api-base" content="https://modelgenx.site" />
+    <title>Model Gen X - Smart Auto ML and DL</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Inter:wght@300..600&family=JetBrains+Mono:wght@400..600&family=Cairo:wght@300..700&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="css/main.css" />
+    <link rel="stylesheet" href="css/landing.css" />
+</head>
+
+<body>
+
+    <!-- ============= TOP NAV ============= -->
+    <header class="topbar">
+        <div class="container topbar-inner">
+            <a class="brand" href="index.html">
+                <span class="brand-mark"></span>
+                <strong>Model Gen X</strong>
+                <small class="mono">v1.0</small>
+            </a>
+            <nav class="nav-links">
+                <a href="#features" data-i18n="nav.features">Features</a>
+                <a href="#workflow">Workflow</a>
+                <a href="pages/pricing.html" data-i18n="nav.pricing">Pricing</a>
+                <a href="#faq">FAQ</a>
+            </nav>
+            <div class="row" style="gap:10px;">
+                <button class="btn-icon" data-theme-toggle title="Toggle theme">
+                    <span data-theme-icon>☾</span>
+                </button>
+                <button class="btn-icon mono" data-lang-toggle title="Language">
+                    <span data-lang-label>EN</span>
+                </button>
+                <a class="btn btn-ghost" href="pages/login.html" data-i18n="nav.signin">Sign in</a>
+                <a class="btn btn-primary" href="pages/login.html" data-i18n="cta.get_started">Get started →</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- ============= HERO ============= -->
+    <section class="hero">
+        <!-- decorative grid -->
+        <div class="hero-grid"></div>
+
+        <div class="container hero-inner">
+            <p class="eyebrow hero-eyebrow" data-i18n="hero.eyebrow">▎AutoML, with words.</p>
+
+            <h1 class="display hero-title">
+                <span class="hero-line line-1" data-i18n="hero.title_1">Build models</span>
+                <span class="hero-line line-2" data-i18n="hero.title_2">by describing</span>
+                <span class="hero-line line-3">
+                    <span data-i18n="hero.title_3">what you need.</span>
+                    <em class="hero-blink">_</em>
+                </span>
+            </h1>
+
+            <p class="hero-sub" data-i18n="hero.sub">
+                Upload a dataset. Tell the agent your goal. Get a trained, evaluated, deployable model in minutes — no
+                notebooks, no boilerplate.
+            </p>
+
+            <div class="hero-cta">
+                <a class="btn btn-accent" href="pages/login.html">
+                    <span data-i18n="cta.try_free">Try it free</span>
+                    <span aria-hidden="true">→</span>
+                </a>
+                <a class="btn btn-ghost" href="#workflow">See how it works</a>
+            </div>
+
+            <!-- floating "terminal" card preview -->
+            <div class="hero-terminal" id="heroTerminal">
+                <div class="term-bar">
+                    <span class="term-dot d-r"></span>
+                    <span class="term-dot d-y"></span>
+                    <span class="term-dot d-g"></span>
+                    <span class="term-label mono">~ smart-automl-agent / iris-classifier</span>
+                </div>
+                <div class="term-body">
+                    <div class="term-line"><span class="term-prompt">user</span><span class="term-typed"
+                            id="termTyped"></span><span class="term-cursor">▍</span></div>
+                    <div class="term-reply" id="termReply"></div>
+                    <div class="term-metrics" id="termMetrics" style="display:none;">
+                        <div class="term-metric"><span class="m-label mono">accuracy</span><span
+                                class="m-value">0.967</span></div>
+                        <div class="term-metric"><span class="m-label mono">f1</span><span class="m-value">0.965</span>
+                        </div>
+                        <div class="term-metric"><span class="m-label mono">model</span><span
+                                class="m-value">RandomForest</span></div>
+                        <div class="term-metric"><span class="m-label mono">time</span><span
+                                class="m-value">12.4s</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- floating tags -->
+            <div class="float-tag t-a mono">› xgboost ready</div>
+            <div class="float-tag t-b mono">‹ T4 GPU</div>
+            <div class="float-tag t-c mono">↳ auto-tuned</div>
+        </div>
+    </section>
+
+    <!-- ============= MARQUEE ============= -->
+    <section class="marquee-wrap">
+        <div class="marquee">
+            <div class="marquee-track">
+                <span>scikit-learn</span><span>·</span>
+                <span>xgboost</span><span>·</span>
+                <span>pytorch</span><span>·</span>
+                <span>tensorflow</span><span>·</span>
+                <span>pycaret</span><span>·</span>
+                <span>gemini 1.5</span><span>·</span>
+                <span>dask</span><span>·</span>
+                <span>fastapi</span><span>·</span>
+                <span>kaggle gpu</span><span>·</span>
+                <!-- duplicated for seamless loop -->
+                <span>scikit-learn</span><span>·</span>
+                <span>xgboost</span><span>·</span>
+                <span>pytorch</span><span>·</span>
+                <span>tensorflow</span><span>·</span>
+                <span>pycaret</span><span>·</span>
+                <span>gemini 1.5</span><span>·</span>
+                <span>dask</span><span>·</span>
+                <span>fastapi</span><span>·</span>
+                <span>kaggle gpu</span><span>·</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============= STATS ============= -->
+    <section class="stats container">
+        <div class="stat-row">
+            <div class="stat">
+                <span class="stat-num display" data-count="9">0</span>
+                <span class="stat-label mono">model families</span>
+            </div>
+            <div class="stat">
+                <span class="stat-num display" data-count="12"><span class="prefix">~</span>0<span
+                        class="suffix">s</span></span>
+                <span class="stat-label mono">avg. train (small csv)</span>
+            </div>
+            <div class="stat">
+                <span class="stat-num display" data-count="100"><span class="prefix">≥</span>0<span
+                        class="suffix">M</span></span>
+                <span class="stat-label mono">rows via dask</span>
+            </div>
+            <div class="stat">
+                <span class="stat-num display" data-count="0"><span class="prefix">0</span></span>
+                <span class="stat-label mono">lines of code required</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============= FEATURES ============= -->
+    <section class="section" id="features">
+        <div class="container">
+            <div class="section-head">
+                <p class="eyebrow">/ 01 — capabilities</p>
+                <h2 class="display section-title">A studio, distilled into a sentence.</h2>
+            </div>
+
+            <div class="features-grid">
+                <article class="feature">
+                    <div class="feature-num mono">01</div>
+                    <h3 class="feature-title display">Chat-first agent</h3>
+                    <p>Describe the task in plain English or Arabic. The Gemini-powered brain interprets it, inspects
+                        your dataset, and proposes a plan you can approve.</p>
+                </article>
+                <article class="feature">
+                    <div class="feature-num mono">02</div>
+                    <h3 class="feature-title display">AutoML, end to end</h3>
+                    <p>Cleaning, encoding, scaling, model selection, cross-validation, hyperparameter tuning — handled.
+                        You get the winning pipeline, persisted and downloadable.</p>
+                </article>
+                <article class="feature">
+                    <div class="feature-num mono">03</div>
+                    <h3 class="feature-title display">Tabular &amp; deep</h3>
+                    <p>CSV, Excel, parquet for ML. Images, text, audio routed to PyTorch / TensorFlow with
+                        mixed-precision training on Kaggle T4 / P100 GPUs.</p>
+                </article>
+                <article class="feature">
+                    <div class="feature-num mono">04</div>
+                    <h3 class="feature-title display">Scales with Dask</h3>
+                    <p>Datasets larger than memory? Chunked, parallel processing keeps the workflow identical from 1 MB
+                        to 100 GB.</p>
+                </article>
+                <article class="feature">
+                    <div class="feature-num mono">05</div>
+                    <h3 class="feature-title display">Live playground</h3>
+                    <p>Every trained model gets an instant prediction interface — type in new feature values, see the
+                        answer and class probabilities in real time.</p>
+                </article>
+                <article class="feature">
+                    <div class="feature-num mono">06</div>
+                    <h3 class="feature-title display">Bring it home</h3>
+                    <p>Export your model as a joblib bundle. The whole pipeline is portable to any Python environment.
+                    </p>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============= WORKFLOW ============= -->
+    <section class="section workflow" id="workflow">
+        <div class="container">
+            <div class="section-head">
+                <p class="eyebrow">/ 02 — how it works</p>
+                <h2 class="display section-title">Four steps. <em>Always.</em></h2>
+            </div>
+
+            <ol class="workflow-list">
+                <li class="workflow-step">
+                    <span class="step-rail"></span>
+                    <span class="step-num mono">step.01</span>
+                    <h3 class="step-title display">Sign in with Google.</h3>
+                    <p>OAuth 2.0 — no password to remember. Free tokens credited automatically.</p>
+                </li>
+                <li class="workflow-step">
+                    <span class="step-rail"></span>
+                    <span class="step-num mono">step.02</span>
+                    <h3 class="step-title display">Upload your data.</h3>
+                    <p>Drop a CSV / Excel file or paste a Drive link. The agent profiles columns, missing values, and
+                        suggests a target.</p>
+                </li>
+                <li class="workflow-step">
+                    <span class="step-rail"></span>
+                    <span class="step-num mono">step.03</span>
+                    <h3 class="step-title display">Chat your intent.</h3>
+                    <p>“Predict customer churn.” The agent picks classification, splits data, trains 4 candidates, and
+                        reports the best one.</p>
+                </li>
+                <li class="workflow-step">
+                    <span class="step-num mono">step.04</span>
+                    <h3 class="step-title display">Use the model.</h3>
+                    <p>Test predictions in the live playground, download the artifact, or hand it to your API.</p>
+                </li>
+            </ol>
+        </div>
+    </section>
+
+    <!-- ============= DEMO STRIP ============= -->
+    <section class="section demo-strip">
+        <div class="container demo-inner">
+            <div class="demo-text">
+                <p class="eyebrow">/ 03 — live demo</p>
+                <h2 class="display section-title">From file to forecast<br />in one conversation.</h2>
+                <p class="demo-copy">Sign in, drop a CSV, and ask the agent to build a model. You'll see column
+                    profiling, automatic task detection, cross-validation across candidate models, and the winner saved
+                    to your dashboard — all in under a minute on a typical tabular dataset.</p>
+                <a class="btn btn-accent" href="pages/login.html">Open the playground →</a>
+            </div>
+            <div class="demo-visual">
+                <div class="demo-chip">
+                    <div class="chip-line"><span class="mono c-dim">›</span> <span class="mono">iris.csv</span> <span
+                            class="tag tag-accent">parsed</span></div>
+                    <div class="chip-line">150 rows · 5 columns · target detected: <span class="mono">target</span>
+                    </div>
+                    <div class="chip-bar">
+                        <div class="chip-fill" style="width:96%"></div>
+                    </div>
+                    <div class="chip-line"><span class="mono c-dim">↳</span> Random Forest · <strong>accuracy
+                            0.967</strong></div>
+                    <div class="chip-line"><span class="mono c-dim">↳</span> Logistic Regression · accuracy 0.933</div>
+                    <div class="chip-line"><span class="mono c-dim">↳</span> Gradient Boosting · accuracy 0.946</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============= TESTIMONIALS ============= -->
+    <section class="section">
+        <div class="container">
+            <div class="section-head">
+                <p class="eyebrow">/ 04 — early users</p>
+                <h2 class="display section-title">What people are saying.</h2>
+            </div>
+            <div class="testimonials">
+                <figure class="testimonial">
+                    <blockquote>“I described my churn problem in two sentences. Twenty seconds later I had a model with
+                        0.91 AUC. This is what AutoML should always have felt like.”</blockquote>
+                    <figcaption><span class="mono">— Data Lead, fintech startup</span></figcaption>
+                </figure>
+                <figure class="testimonial">
+                    <blockquote>“The chat interface removed the ‘which library do I install today’ question. My grad
+                        students just <em>build</em>.”</blockquote>
+                    <figcaption><span class="mono">— Prof., CS department</span></figcaption>
+                </figure>
+                <figure class="testimonial">
+                    <blockquote>“We pushed a 2 GB CSV through and it shrugged. Same workflow, same UI. That was the
+                        moment we paid for Pro.”</blockquote>
+                    <figcaption><span class="mono">— ML engineer, e-commerce</span></figcaption>
+                </figure>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============= FAQ ============= -->
+    <section class="section" id="faq">
+        <div class="container-narrow">
+            <div class="section-head">
+                <p class="eyebrow">/ 05 — faq</p>
+                <h2 class="display section-title">Questions, answered.</h2>
+            </div>
+            <div class="faq">
+                <details class="faq-item">
+                    <summary>Do I need to know Python?</summary>
+                    <p>No. The platform is designed for non-coders. If you do know Python, you can also download the
+                        trained pipeline and integrate it anywhere.</p>
+                </details>
+                <details class="faq-item">
+                    <summary>What's the maximum dataset size?</summary>
+                    <p>On the Free plan, 200 MB per upload. Pro raises the limit and routes larger files through Dask
+                        streaming. We've tested up to ~10 GB on a single Pro project.</p>
+                </details>
+                <details class="faq-item">
+                    <summary>How does token billing work?</summary>
+                    <p>You get 1,000 free tokens on signup. Training consumes 50 tokens; predictions 1 token each. When
+                        you run out, upgrade to Pro or Enterprise — no second-account loopholes.</p>
+                </details>
+                <details class="faq-item">
+                    <summary>Can I export my model?</summary>
+                    <p>Yes. Every trained pipeline is downloadable as a joblib artifact that includes the preprocessing
+                        steps. It runs in any Python 3.11+ environment.</p>
+                </details>
+                <details class="faq-item">
+                    <summary>Is my data private?</summary>
+                    <p>Datasets are stored under your account and never used to train shared models. Delete a project
+                        and the underlying files are removed too.</p>
+                </details>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============= CTA ============= -->
+    <section class="section">
+        <div class="container">
+            <div class="cta-card">
+                <h2 class="display cta-title">Ship a model<br />before lunch.</h2>
+                <p class="cta-sub">Sign up free. No card. No setup. 1,000 tokens included.</p>
+                <a class="btn btn-accent" href="pages/login.html">Get started →</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============= FOOTER ============= -->
+    <footer class="footer">
+        <div class="container footer-inner">
+            <div class="footer-brand">
+                <a class="brand" href="index.html">
+                    <span class="brand-mark"></span>
+                    <strong>Model Gen X</strong>
+                </a>
+                <p class="footer-tag">Trained models, conversational.</p>
+            </div>
+            <nav class="footer-nav">
+                <div>
+                    <p class="eyebrow">Product</p>
+                    <a href="#features">Features</a>
+                    <a href="pages/pricing.html">Pricing</a>
+                    <a href="#workflow">How it works</a>
+                </div>
+                <div>
+                    <p class="eyebrow">Resources</p>
+                    <a href="#faq">FAQ</a>
+                    <a href="#">Docs</a>
+                    <a href="#">Changelog</a>
+                </div>
+                <div>
+                    <p class="eyebrow">Company</p>
+                    <a href="#">About</a>
+                    <a href="#">Privacy</a>
+                    <a href="#">Terms</a>
+                </div>
+            </nav>
+            <p class="footer-copy mono">© 2026 · Model Gen X · graduation edition</p>
+        </div>
+    </footer>
+
+    <script src="js/common.js"></script>
+    <script src="js/landing.js"></script>
+
+</body>
+
+</html>

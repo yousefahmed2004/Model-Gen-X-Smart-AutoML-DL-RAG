@@ -1,0 +1,1799 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="api-base" content="https://modelgenx.site" />
+    <title>Training — Model Gen X</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Inter:wght@300..600&family=JetBrains+Mono:wght@400..600&family=Cairo:wght@300..700&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="../css/main.css" />
+    <link rel="stylesheet" href="../css/app.css" />
+    <style>
+        .log-box {
+            background: #0D1117;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 20px 24px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            line-height: 1.9;
+            color: #C9D1D9;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .log-box .ok    { color: #3FB950; }
+        .log-box .accent{ color: #58A6FF; }
+        .log-box .warn  { color: #D29922; }
+        .log-box .dim   { color: #6E7681; }
+        .log-box .err   { color: #F85149; }
+
+        .metric-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+
+        @media(max-width:700px) {
+            .metric-row { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        .metric-card {
+            background: var(--bg-elev);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .metric-card .ml {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            letter-spacing: .14em;
+            color: var(--text-faint);
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .metric-card .mv {
+            font-family: 'Fraunces', serif;
+            font-size: 34px;
+            color: var(--accent);
+            letter-spacing: -.03em;
+            line-height: 1;
+        }
+
+        .pulse {
+            display: inline-block;
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--accent);
+            animation: pulse-anim 1.2s infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes pulse-anim {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50%       { opacity: .5; transform: scale(1.3); }
+        }
+
+        .target-hint {
+            display: none;
+            margin-top: 8px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .target-hint.warn {
+            background: rgba(210,153,34,.12);
+            border: 1px solid rgba(210,153,34,.35);
+            color: #D29922;
+        }
+
+        .target-hint.good {
+            background: rgba(63,185,80,.10);
+            border: 1px solid rgba(63,185,80,.30);
+            color: #3FB950;
+        }
+
+        /* Tabs */
+        .train-tab {
+            padding: 12px 28px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            color: var(--text-dim);
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+            transition: all .2s;
+        }
+
+        .train-tab:hover  { color: var(--text); }
+        .train-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+        /* DL type cards */
+        .dl-type-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+
+        .dl-type-card {
+            border: 2px solid var(--line);
+            border-radius: 14px;
+            padding: 20px 16px;
+            cursor: pointer;
+            transition: all .2s;
+            text-align: center;
+            background: var(--bg-elev);
+        }
+
+        .dl-type-card:hover  { border-color: var(--text-dim); }
+        .dl-type-card.active { border-color: var(--accent); background: var(--accent-soft); }
+        .dl-type-card .dt-icon  { font-size: 28px; margin-bottom: 8px; }
+        .dl-type-card .dt-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+        .dl-type-card .dt-sub   { font-size: 12px; color: var(--text-dim); }
+
+        .stage-pill {
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--bg-elev-2);
+            color: var(--text-faint);
+            border: 1px solid var(--line);
+            transition: all .3s;
+        }
+
+        .stage-pill.active {
+            background: var(--accent-soft);
+            color: var(--accent);
+            border-color: rgba(0,229,255,.4);
+            font-weight: 600;
+        }
+
+        .stage-pill.done {
+            background: rgba(63,185,80,.12);
+            color: #3FB950;
+            border-color: rgba(63,185,80,.3);
+        }
+
+        /* Epochs control */
+        .epochs-wrap { display: grid; gap: 8px; }
+        .epochs-input-row { display: flex; align-items: center; gap: 10px; }
+        .epochs-input-row input[type="number"] {
+            flex: 1;
+            background: var(--bg-elev-2);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 12px 14px;
+            color: var(--text);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 15px;
+            font-weight: 600;
+            width: 100%;
+            transition: border-color .2s;
+        }
+        .epochs-input-row input[type="number"]:focus { outline: none; border-color: var(--accent); }
+        .epochs-slider { width: 100%; accent-color: var(--accent); cursor: pointer; height: 4px; }
+        .epochs-bar-track {
+            background: var(--bg-elev-2);
+            border-radius: 999px;
+            height: 5px;
+            overflow: hidden;
+            margin-top: 2px;
+        }
+        .epochs-bar-fill {
+            height: 100%;
+            border-radius: 999px;
+            transition: width .35s ease, background .35s ease;
+            background: var(--accent);
+            box-shadow: 0 0 8px var(--accent);
+        }
+        .epochs-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: var(--text-faint);
+            margin-top: 2px;
+        }
+        .epochs-hint-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 9px;
+            border-radius: 999px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: .04em;
+            transition: all .3s;
+        }
+        .epochs-hint-badge.low  { background: rgba(63,185,80,.12); border: 1px solid rgba(63,185,80,.3); color: #3FB950; }
+        .epochs-hint-badge.mid  { background: rgba(0,229,255,.10); border: 1px solid rgba(0,229,255,.3); color: var(--accent); }
+        .epochs-hint-badge.high { background: rgba(210,153,34,.12); border: 1px solid rgba(210,153,34,.35); color: #D29922; }
+        .epochs-presets { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+        .epochs-preset-btn {
+            padding: 4px 11px;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            font-weight: 500;
+            border: 1px solid var(--line);
+            background: var(--bg-elev-2);
+            color: var(--text-dim);
+            cursor: pointer;
+            transition: all .15s;
+        }
+        .epochs-preset-btn:hover, .epochs-preset-btn.active {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: var(--accent-soft);
+        }
+        .epochs-preset-btn.active { font-weight: 700; }
+        .epochs-est { font-size: 11px; color: var(--text-faint); font-family: 'JetBrains Mono', monospace; margin-top: 2px; }
+
+        /* ── NEW: Preprocessing section styles ── */
+        .prep-section {
+            background: var(--bg-elev-2);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            overflow: hidden;
+            margin-top: 20px;
+        }
+
+        .prep-section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 18px;
+            cursor: pointer;
+            user-select: none;
+            border-bottom: 1px solid transparent;
+            transition: border-color .2s;
+        }
+
+        .prep-section-header:hover { background: rgba(255,255,255,.03); }
+        .prep-section-header.open  { border-bottom-color: var(--line); }
+
+        .prep-section-header .prep-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .prep-section-header .prep-summary {
+            font-size: 11px;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-faint);
+            max-width: 55%;
+            text-align: right;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .prep-section-header .prep-chevron {
+            font-size: 11px;
+            color: var(--text-faint);
+            margin-left: 8px;
+            transition: transform .2s;
+        }
+
+        .prep-section-header.open .prep-chevron { transform: rotate(180deg); }
+
+        .prep-section-body {
+            display: none;
+            padding: 18px;
+            display: grid;
+            gap: 16px;
+        }
+
+        .prep-section-body.collapsed { display: none; }
+
+        .prep-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+        }
+
+        .prep-field label {
+            display: block;
+            font-size: 11px;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-faint);
+            text-transform: uppercase;
+            letter-spacing: .1em;
+            margin-bottom: 6px;
+        }
+
+        .prep-field select, .prep-field input[type="number"] {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--line);
+            background: var(--bg-elev);
+            color: var(--text);
+            font-size: 13px;
+            font-family: 'JetBrains Mono', monospace;
+            transition: border-color .2s;
+            appearance: none;
+        }
+
+        .prep-field select:focus, .prep-field input[type="number"]:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .split-pills {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .split-pill {
+            padding: 7px 14px;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            font-weight: 500;
+            border: 1px solid var(--line);
+            background: var(--bg-elev);
+            color: var(--text-dim);
+            cursor: pointer;
+            transition: all .15s;
+        }
+
+        .split-pill:hover { border-color: var(--accent); color: var(--accent); }
+        .split-pill.active { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); font-weight: 700; }
+
+        .prep-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 10px;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            background: rgba(0,229,255,.1);
+            border: 1px solid rgba(0,229,255,.25);
+            color: var(--accent);
+        }
+
+        /* DL optimizer + augmentation */
+        .dl-extra-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .dl-extra-field label {
+            display: block;
+            font-size: 11px;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-faint);
+            text-transform: uppercase;
+            letter-spacing: .1em;
+            margin-bottom: 6px;
+        }
+
+        .dl-extra-field select {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--line);
+            background: var(--bg-elev-2);
+            color: var(--text);
+            font-size: 13px;
+            font-family: 'JetBrains Mono', monospace;
+            transition: border-color .2s;
+        }
+
+        .dl-extra-field select:focus { outline: none; border-color: var(--accent); }
+
+        .toggle-switch {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            background: var(--bg-elev);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: border-color .2s;
+        }
+
+        .toggle-switch:hover { border-color: var(--accent); }
+
+        .toggle-switch input[type="checkbox"] {
+            width: 16px; height: 16px;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
+        .toggle-switch span { font-size: 13px; color: var(--text-dim); }
+
+        /* Chatbot pill marker */
+        .chat-param-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 1px 7px;
+            border-radius: 999px;
+            font-size: 9px;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            background: rgba(0,229,255,.08);
+            border: 1px solid rgba(0,229,255,.2);
+            color: var(--accent);
+            vertical-align: middle;
+            margin-left: 6px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-shell">
+        <aside class="sidebar"></aside>
+        <main class="main">
+            <div class="page-head">
+                <div>
+                    <div class="page-eyebrow">/ training</div>
+                    <h1 class="page-title">Train a model.</h1>
+                    <p class="page-sub">Machine Learning or Deep Learning — your choice.</p>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div style="display:flex;gap:0;margin-bottom:24px;border-bottom:1px solid var(--line);">
+                <button class="train-tab active" id="tabML" onclick="switchTab('ml')">🤖 Machine Learning</button>
+                <button class="train-tab" id="tabDL" onclick="switchTab('dl')">🧠 Deep Learning (PyTorch)</button>
+            </div>
+
+            <!-- ══════════ ML PANEL ══════════ -->
+            <div id="panelML">
+                <div class="card" style="margin-bottom:24px;">
+                    <div class="row" style="gap:16px;align-items:flex-end;flex-wrap:wrap;">
+                        <div class="field" style="flex:1;min-width:180px;">
+                            <label>Project</label><select id="projectSel"></select>
+                        </div>
+                        <div class="field" style="flex:1;min-width:180px;">
+                            <label>Dataset</label><select id="datasetSel"></select>
+                        </div>
+                        <div class="field" style="flex:1;min-width:180px;">
+                            <label>Target column</label>
+                            <select id="targetSel"></select>
+                            <div class="target-hint" id="targetHint"></div>
+                        </div>
+                        <div class="field" style="min-width:150px;">
+                            <label>Task type</label>
+                            <select id="taskSel">
+                                <option value="auto">Auto-detect</option>
+                                <option value="classification">Classification</option>
+                                <option value="regression">Regression</option>
+                            </select>
+                        </div>
+                        <div class="field" style="min-width:180px;">
+                            <label>Model</label>
+                            <select id="modelSel">
+                                <option value="Auto (Best)">🤖 Auto (Best)</option>
+                                <optgroup label="── Classification ──">
+                                    <option value="Random Forest">Random Forest</option>
+                                    <option value="Gradient Boosting">Gradient Boosting</option>
+                                    <option value="Logistic Regression">Logistic Regression</option>
+                                    <option value="Decision Tree">Decision Tree</option>
+                                    <option value="Extra Trees">Extra Trees</option>
+                                    <option value="AdaBoost">AdaBoost</option>
+                                    <option value="SVM">SVM</option>
+                                    <option value="KNN">KNN</option>
+                                </optgroup>
+                                <optgroup label="── Regression ──">
+                                    <option value="Ridge">Ridge</option>
+                                    <option value="Lasso">Lasso</option>
+                                    <option value="ElasticNet">ElasticNet</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        <div class="field" style="min-width:150px;">
+                            <label>Output format</label>
+                            <select id="formatSel">
+                                <option value="joblib">📦 .joblib (scikit-learn)</option>
+                                <option value="pkl">🐍 .pkl (Pickle)</option>
+                                <option value="onnx">🔄 .onnx (Universal)</option>
+                                <option value="pt">🔥 .pt (PyTorch)</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-accent" id="trainBtn" style="height:46px;min-width:160px;">→ Start training</button>
+                    </div>
+
+                    <!-- Model settings -->
+                    <div class="row" style="gap:16px;flex-wrap:wrap;margin-top:18px;">
+                        <div class="field" style="flex:1;min-width:320px;">
+                            <label>Model settings</label>
+                            <div id="mlParamFields" style="display:grid;gap:12px;"></div>
+                        </div>
+                        <div class="field" style="flex:1;min-width:320px;">
+                            <label>Preprocessing <span class="chat-param-badge">🤖 AI</span></label>
+                            <div id="mlPreprocessingFields" style="display:grid;gap:12px;">
+                                <label style="display:flex;align-items:center;gap:10px;">
+                                    <input type="checkbox" id="ppScale" />
+                                    Scale numeric columns
+                                </label>
+                                <label style="display:flex;align-items:center;gap:10px;">
+                                    <input type="checkbox" id="ppImpute" />
+                                    Impute missing values
+                                </label>
+                                <div style="display:grid;gap:10px;">
+                                    <label>Encoding</label>
+                                    <select id="ppEncode"
+                                        style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg-elev-2);color:var(--text);">
+                                        <option value="">None</option>
+                                        <option value="onehot">One-hot</option>
+                                        <option value="ordinal">Ordinal</option>
+                                    </select>
+                                </div>
+                                <div style="display:grid;gap:10px;">
+                                    <label>Feature selection</label>
+                                    <select id="ppFeatureSelect"
+                                        style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg-elev-2);color:var(--text);">
+                                        <option value="">None</option>
+                                        <option value="variance">Variance threshold</option>
+                                        <option value="selectkbest">SelectKBest</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ══ NEW: Full Preprocessing Panel (ML) ══ -->
+                    <div class="prep-section" style="margin-top:20px;">
+                        <div class="prep-section-header open" id="mlPrepHeader" onclick="togglePrepSection('ml')">
+                            <div class="prep-title">
+                                ⚙️ Advanced Preprocessing
+                                <span class="chat-param-badge">🤖 AI</span>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <span class="prep-summary" id="mlPrepSummary">defaults applied</span>
+                                <span class="prep-chevron" id="mlPrepChevron">▼</span>
+                            </div>
+                        </div>
+                        <div class="prep-section-body" id="mlPrepBody">
+                            <!-- Row 1: Missing values + Encoding + Scaling -->
+                            <div class="prep-row">
+                                <div class="prep-field">
+                                    <label>Missing Values</label>
+                                    <select id="mlMissingValues" onchange="updateMLPrepSummary()">
+                                        <option value="median_mode">Fill median / mode ✅</option>
+                                        <option value="drop">Drop rows</option>
+                                        <option value="custom">Custom value</option>
+                                        <option value="none">Leave as-is</option>
+                                    </select>
+                                </div>
+                                <div class="prep-field">
+                                    <label>Encoding</label>
+                                    <select id="mlEncoding" onchange="updateMLPrepSummary()">
+                                        <option value="one_hot">One-Hot ✅</option>
+                                        <option value="label">Label Encoding</option>
+                                        <option value="auto">Auto-detect</option>
+                                    </select>
+                                </div>
+                                <div class="prep-field">
+                                    <label>Scaling</label>
+                                    <select id="mlScaling" onchange="updateMLPrepSummary()">
+                                        <option value="standard">StandardScaler ✅</option>
+                                        <option value="minmax">MinMaxScaler</option>
+                                        <option value="none">No scaling</option>
+                                        <option value="auto">Auto-select</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <!-- Row 2: Feature selection + Train/Test split -->
+                            <div class="prep-row">
+                                <div class="prep-field">
+                                    <label>Feature Selection</label>
+                                    <select id="mlFeatureSelection" onchange="updateMLPrepSummary()">
+                                        <option value="false">Disabled ✅</option>
+                                        <option value="true">Auto-select top features</option>
+                                    </select>
+                                </div>
+                                <div class="prep-field">
+                                    <label>Train / Test Split</label>
+                                    <div class="split-pills" id="mlSplitPills">
+                                        <button class="split-pill active" data-split="0.2" onclick="selectSplit('ml', 0.2, this)">80/20 ✅</button>
+                                        <button class="split-pill" data-split="0.3" onclick="selectSplit('ml', 0.3, this)">70/30</button>
+                                        <button class="split-pill" data-split="0.1" onclick="selectSplit('ml', 0.1, this)">90/10</button>
+                                        <button class="split-pill" data-split="custom" onclick="selectSplit('ml', 'custom', this)">Custom</button>
+                                    </div>
+                                    <input type="number" id="mlSplitCustom" min="0.05" max="0.5" step="0.05"
+                                        placeholder="e.g. 0.25"
+                                        style="display:none;margin-top:8px;width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg-elev);color:var(--text);font-family:'JetBrains Mono',monospace;"
+                                        onchange="updateMLPrepSummary()" />
+                                    <input type="hidden" id="mlTrainTestSplit" value="0.2" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Kaggle GPU toggle -->
+                    <div id="kaggleToggleWrap"
+                        style="margin-top:12px;padding:12px 16px;background:var(--bg-elev-2);border:1px solid var(--line);border-radius:10px;display:flex;align-items:center;justify-content:space-between;">
+                        <div>
+                            <div style="font-weight:600;font-size:13px;">🚀 Train on Kaggle GPU</div>
+                            <div style="font-size:12px;color:var(--text-faint);" id="kaggleToggleNote">Connect Kaggle in Settings to enable</div>
+                        </div>
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                            <input type="checkbox" id="useKaggleToggle" disabled
+                                style="width:16px;height:16px;accent-color:var(--accent);" />
+                            <span style="font-size:12px;color:var(--text-dim);">Use Kaggle</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ══════════ DL PANEL ══════════ -->
+            <div id="panelDL" style="display:none;">
+                <div class="card" style="margin-bottom:24px;">
+
+                    <!-- DL Type selector -->
+                    <p class="eyebrow" style="margin-bottom:14px;">/ choose task type</p>
+                    <div class="dl-type-grid">
+                        <div class="dl-type-card active" id="dlTypeTabular" onclick="selectDLType('tabular')">
+                            <div class="dt-icon">📊</div>
+                            <div class="dt-title">Tabular MLP</div>
+                            <div class="dt-sub">CSV / Excel data<br />Multi-layer Perceptron</div>
+                        </div>
+                        <div class="dl-type-card" id="dlTypeImage" onclick="selectDLType('image')">
+                            <div class="dt-icon">🖼️</div>
+                            <div class="dt-title">Image Classification</div>
+                            <div class="dt-sub">ZIP of images in folders<br />ResNet18 / MobileNet / CNN</div>
+                        </div>
+                        <div class="dl-type-card" id="dlTypeText" onclick="selectDLType('text')">
+                            <div class="dt-icon">📝</div>
+                            <div class="dt-title">Text Classification</div>
+                            <div class="dt-sub">CSV with text column<br />BiLSTM</div>
+                        </div>
+                    </div>
+
+                    <!-- Common: Project + Dataset + Epochs -->
+                    <div class="row" style="gap:16px;flex-wrap:wrap;margin-bottom:16px;align-items:flex-start;">
+                        <div class="field" style="flex:1;min-width:180px;">
+                            <label>Project</label><select id="dlProjectSel"></select>
+                        </div>
+                        <div class="field" style="flex:1;min-width:180px;">
+                            <label>Dataset</label><select id="dlDatasetSel"></select>
+                        </div>
+
+                        <!-- Epochs control -->
+                        <div class="field" style="min-width:220px;max-width:280px;">
+                            <label style="display:flex;align-items:center;justify-content:space-between;">
+                                <span>Epochs <span class="chat-param-badge">🤖 AI</span></span>
+                                <span id="epochsHintBadge" class="epochs-hint-badge low">⚡ Fast</span>
+                            </label>
+                            <div class="epochs-wrap">
+                                <div class="epochs-input-row">
+                                    <input id="dlEpochs" type="number" value="30" min="1" max="200" />
+                                </div>
+                                <input id="dlEpochsSlider" type="range" class="epochs-slider" min="1" max="200" value="30" step="1" />
+                                <div class="epochs-bar-track">
+                                    <div class="epochs-bar-fill" id="epochsBarFill" style="width:15%;"></div>
+                                </div>
+                                <div class="epochs-meta">
+                                    <span>1</span>
+                                    <span id="epochsEst" class="epochs-est">~2 min</span>
+                                    <span id="epochsMaxLabel">200</span>
+                                </div>
+                                <div class="epochs-presets" id="epochsPresets">
+                                    <button class="epochs-preset-btn" onclick="setEpochsPreset(10)">10</button>
+                                    <button class="epochs-preset-btn active" onclick="setEpochsPreset(30)">30</button>
+                                    <button class="epochs-preset-btn" onclick="setEpochsPreset(50)">50</button>
+                                    <button class="epochs-preset-btn" onclick="setEpochsPreset(100)">100</button>
+                                    <button class="epochs-preset-btn" onclick="setEpochsPreset(200)">200</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row" style="gap:16px;flex-wrap:wrap;margin-top:16px;">
+                        <div class="field" style="flex:1;min-width:320px;">
+                            <label>Model settings</label>
+                            <div id="dlParamFields" style="display:grid;gap:12px;"></div>
+                        </div>
+                        <div class="field" style="flex:1;min-width:320px;">
+                            <label>Preprocessing</label>
+                            <div id="dlPreprocessingFields" style="display:grid;gap:12px;">
+                                <label style="display:flex;align-items:center;gap:10px;">
+                                    <input type="checkbox" id="dlPpNormalize" />
+                                    Normalize inputs
+                                </label>
+                                <label style="display:flex;align-items:center;gap:10px;">
+                                    <input type="checkbox" id="dlPpAugment" />
+                                    Data augmentation
+                                </label>
+                                <div style="display:grid;gap:10px;">
+                                    <label>Resize / max sequence</label>
+                                    <input id="dlPpResize" type="number" min="16" max="1024" value="128"
+                                        style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg-elev-2);color:var(--text);" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabular options -->
+                    <div id="dlOptTabular">
+                        <div class="row" style="gap:16px;flex-wrap:wrap;align-items:flex-end;">
+                            <div class="field" style="flex:1;min-width:200px;">
+                                <label>Target column</label>
+                                <select id="dlTargetSel"></select>
+                                <div class="target-hint" id="dlTargetHint"></div>
+                            </div>
+                            <div style="padding:10px 14px;background:var(--bg-elev-2);border-radius:10px;font-size:13px;color:var(--text-dim);border:1px solid var(--line);">
+                                Architecture: <strong style="color:var(--text);">256→128→64 MLP</strong><br />
+                                <span style="font-size:11px;">Adam · BatchNorm · Dropout 0.3</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Image options -->
+                    <div id="dlOptImage" style="display:none;">
+                        <div class="row" style="gap:16px;flex-wrap:wrap;align-items:flex-end;">
+                            <div class="field" style="min-width:160px;">
+                                <label>Architecture</label>
+                                <select id="dlArch">
+                                    <option value="resnet18">ResNet-18 (pretrained)</option>
+                                    <option value="mobilenet">MobileNetV2 (pretrained)</option>
+                                    <option value="cnn">Custom CNN (from scratch)</option>
+                                </select>
+                            </div>
+                            <div class="field" style="min-width:120px;">
+                                <label>Image size (px)</label>
+                                <input id="dlImgSize" type="number" value="128" min="32" max="512"
+                                    style="background:var(--bg-elev-2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;color:var(--text);width:100%;" />
+                            </div>
+                            <div style="padding:10px 14px;background:var(--accent-soft);border-radius:10px;font-size:13px;color:var(--accent);border:1px solid rgba(0,229,255,.3);">
+                                📦 ZIP structure:<br />
+                                <span style="font-family:'JetBrains Mono',monospace;font-size:11px;">class_a/img1.jpg<br />class_b/img2.jpg</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Text options -->
+                    <div id="dlOptText" style="display:none;">
+                        <div class="row" style="gap:16px;flex-wrap:wrap;">
+                            <div class="field" style="flex:1;min-width:180px;">
+                                <label>Text column</label>
+                                <select id="dlTextColSel"></select>
+                            </div>
+                            <div class="field" style="flex:1;min-width:180px;">
+                                <label>Label column (target)</label>
+                                <select id="dlTextLabelSel"></select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ══ NEW: Full Preprocessing Panel (DL) ══ -->
+                    <div class="prep-section" style="margin-top:20px;">
+                        <div class="prep-section-header open" id="dlPrepHeader" onclick="togglePrepSection('dl')">
+                            <div class="prep-title">
+                                ⚙️ Training Configuration
+                                <span class="chat-param-badge">🤖 AI</span>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <span class="prep-summary" id="dlPrepSummary">Adam · 32 · 80/20</span>
+                                <span class="prep-chevron" id="dlPrepChevron">▼</span>
+                            </div>
+                        </div>
+                        <div class="prep-section-body" id="dlPrepBody">
+                            <!-- Row 1: Missing values + Encoding + Scaling -->
+                            <div class="prep-row">
+                                <div class="prep-field">
+                                    <label>Missing Values</label>
+                                    <select id="dlMissingValues" onchange="updateDLPrepSummary()">
+                                        <option value="median_mode">Fill median / mode ✅</option>
+                                        <option value="drop">Drop rows</option>
+                                        <option value="custom">Custom value</option>
+                                        <option value="none">Leave as-is</option>
+                                    </select>
+                                </div>
+                                <div class="prep-field">
+                                    <label>Encoding</label>
+                                    <select id="dlEncoding" onchange="updateDLPrepSummary()">
+                                        <option value="label">Label Encoding ✅</option>
+                                        <option value="one_hot">One-Hot</option>
+                                        <option value="auto">Auto-detect</option>
+                                    </select>
+                                </div>
+                                <div class="prep-field">
+                                    <label>Scaling</label>
+                                    <select id="dlScaling" onchange="updateDLPrepSummary()">
+                                        <option value="standard">StandardScaler ✅</option>
+                                        <option value="minmax">MinMaxScaler</option>
+                                        <option value="none">No scaling</option>
+                                        <option value="auto">Auto-select</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <!-- Row 2: Optimizer + Batch size + Augmentation -->
+                            <div class="prep-row">
+                                <div class="dl-extra-field">
+                                    <label>Optimizer</label>
+                                    <select id="dlOptimizer" onchange="updateDLPrepSummary()">
+                                        <option value="adam">Adam ⚡ (recommended)</option>
+                                        <option value="sgd">SGD (classic)</option>
+                                        <option value="rmsprop">RMSprop (BiLSTM)</option>
+                                    </select>
+                                </div>
+                                <div class="dl-extra-field">
+                                    <label>Batch Size</label>
+                                    <select id="dlBatchSize" onchange="updateDLPrepSummary()">
+                                        <option value="16">16 — more updates</option>
+                                        <option value="32" selected>32 ✅ (recommended)</option>
+                                        <option value="64">64 — faster</option>
+                                    </select>
+                                </div>
+                                <div class="dl-extra-field">
+                                    <label>Augmentation <span style="font-size:9px;color:var(--text-faint);">(images only)</span></label>
+                                    <select id="dlAugmentation" onchange="updateDLPrepSummary()">
+                                        <option value="none">None</option>
+                                        <option value="standard">Standard (flip/rotate/zoom)</option>
+                                        <option value="heavy">Heavy (aggressive)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <!-- Row 3: Feature selection + Train/Test split -->
+                            <div class="prep-row">
+                                <div class="prep-field">
+                                    <label>Feature Selection</label>
+                                    <select id="dlFeatureSelection" onchange="updateDLPrepSummary()">
+                                        <option value="false">Disabled ✅</option>
+                                        <option value="true">Auto-select top features</option>
+                                    </select>
+                                </div>
+                                <div class="prep-field">
+                                    <label>Train / Test Split</label>
+                                    <div class="split-pills" id="dlSplitPills">
+                                        <button class="split-pill active" data-split="0.2" onclick="selectSplit('dl', 0.2, this)">80/20 ✅</button>
+                                        <button class="split-pill" data-split="0.3" onclick="selectSplit('dl', 0.3, this)">70/30</button>
+                                        <button class="split-pill" data-split="0.1" onclick="selectSplit('dl', 0.1, this)">90/10</button>
+                                        <button class="split-pill" data-split="custom" onclick="selectSplit('dl', 'custom', this)">Custom</button>
+                                    </div>
+                                    <input type="number" id="dlSplitCustom" min="0.05" max="0.5" step="0.05"
+                                        placeholder="e.g. 0.25"
+                                        style="display:none;margin-top:8px;width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg-elev);color:var(--text);font-family:'JetBrains Mono',monospace;"
+                                        onchange="updateDLPrepSummary()" />
+                                    <input type="hidden" id="dlTrainTestSplit" value="0.2" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top:20px;">
+                        <button class="btn btn-accent" id="dlTrainBtn" style="height:46px;min-width:220px;">
+                            🧠 Start Deep Learning training
+                        </button>
+                        <p style="margin-top:10px;font-size:12px;color:var(--text-faint);font-family:'JetBrains Mono',monospace;">
+                            ⚡ Automatically uses Kaggle GPU when available
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ══════════ SHARED: Status + Log + Results ══════════ -->
+            <div id="statusBanner"
+                style="display:none;background:var(--bg-elev);border:1px solid var(--line);border-radius:14px;padding:20px 24px;margin-bottom:20px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span class="pulse"></span>
+                        <span id="statusText" style="font-family:'JetBrains Mono',monospace;font-size:14px;">Initializing…</span>
+                    </div>
+                    <span id="progressPct" style="font-family:'Fraunces',serif;font-size:22px;color:var(--accent);font-weight:600;">0%</span>
+                </div>
+                <div style="background:var(--bg-elev-2);border-radius:999px;height:8px;overflow:hidden;margin-bottom:12px;">
+                    <div id="progressBar"
+                        style="height:100%;width:0%;background:var(--accent);border-radius:999px;transition:width .4s ease;box-shadow:0 0 12px var(--accent);">
+                    </div>
+                </div>
+                <div id="stageRow" style="display:flex;gap:6px;flex-wrap:wrap;">
+                    <span class="stage-pill" id="stage0">📂 Loading</span>
+                    <span class="stage-pill" id="stage1">🔧 Preprocessing</span>
+                    <span class="stage-pill" id="stage2">🧪 Cross-validating</span>
+                    <span class="stage-pill" id="stage3">🏋️ Fitting best</span>
+                    <span class="stage-pill" id="stage4">📊 Evaluating</span>
+                    <span class="stage-pill" id="stage5">💾 Saving</span>
+                </div>
+            </div>
+
+            <div id="logSection" style="display:none;margin-bottom:24px;">
+                <p class="eyebrow" style="margin-bottom:12px;">/ training log</p>
+                <div class="log-box" id="logBox"><span class="dim">Waiting for training to start…</span></div>
+            </div>
+
+            <div id="resultsSection" style="display:none;margin-top:32px;">
+                <div class="page-head" style="margin-bottom:20px;">
+                    <div>
+                        <div class="page-eyebrow">/ results</div>
+                        <h2 class="page-title" style="font-size:30px;">Best model: <span id="bestName">—</span></h2>
+                        <p class="page-sub mono" id="bestMeta">—</p>
+                    </div>
+                    <div class="row">
+                        <button class="btn btn-ghost" id="downloadBtn">⬇ Download model</button>
+                        <a class="btn btn-accent" id="tryItBtn" href="#">Try it in playground →</a>
+                    </div>
+                </div>
+                <div class="metric-row" id="metricRow"></div>
+                <div id="qualityBanner"
+                    style="display:none;margin-top:20px;padding:16px 20px;border-radius:12px;font-size:14px;"></div>
+                <div id="cmSection" style="margin-top:24px;display:none;">
+                    <p class="eyebrow" style="margin-bottom:12px;">/ confusion matrix</p>
+                    <div class="card" id="cmCard"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../js/common.js?v=2"></script>
+    <script src="../js/sidebar.js?v=2"></script>
+    <script>
+        // ── NEW: Preprocessing panel helpers ──────────────────────────────────
+
+        window.togglePrepSection = function(tab) {
+            const body    = document.getElementById(tab + 'PrepBody');
+            const header  = document.getElementById(tab + 'PrepHeader');
+            const chevron = document.getElementById(tab + 'PrepChevron');
+            const isOpen  = !body.classList.contains('collapsed');
+            if (isOpen) {
+                body.classList.add('collapsed');
+                header.classList.remove('open');
+            } else {
+                body.classList.remove('collapsed');
+                header.classList.add('open');
+            }
+        };
+
+        window.selectSplit = function(tab, val, btn) {
+            // Deactivate all pills
+            document.querySelectorAll(`#${tab}SplitPills .split-pill`).forEach(p => p.classList.remove('active'));
+            btn.classList.add('active');
+            const customInput = document.getElementById(tab + 'SplitCustom');
+            const hiddenInput = document.getElementById(tab + 'TrainTestSplit');
+            if (val === 'custom') {
+                customInput.style.display = '';
+                hiddenInput.value = customInput.value || '0.2';
+            } else {
+                customInput.style.display = 'none';
+                hiddenInput.value = val;
+            }
+            tab === 'ml' ? updateMLPrepSummary() : updateDLPrepSummary();
+        };
+
+        window.updateMLPrepSummary = function() {
+            const missing  = document.getElementById('mlMissingValues')?.value || 'median_mode';
+            const encoding = document.getElementById('mlEncoding')?.value || 'one_hot';
+            const scaling  = document.getElementById('mlScaling')?.value || 'standard';
+            const featSel  = document.getElementById('mlFeatureSelection')?.value === 'true';
+            const split    = document.getElementById('mlTrainTestSplit')?.value || '0.2';
+            const splitPct = Math.round((1 - parseFloat(split)) * 100) + '/' + Math.round(parseFloat(split) * 100);
+            const el = document.getElementById('mlPrepSummary');
+            if (el) el.textContent = `${missing} · ${encoding} · ${scaling} · ${splitPct}${featSel ? ' · feat.sel' : ''}`;
+        };
+
+        window.updateDLPrepSummary = function() {
+            const optimizer  = document.getElementById('dlOptimizer')?.value || 'adam';
+            const batchSize  = document.getElementById('dlBatchSize')?.value || '32';
+            const split      = document.getElementById('dlTrainTestSplit')?.value || '0.2';
+            const aug        = document.getElementById('dlAugmentation')?.value || 'none';
+            const splitPct   = Math.round((1 - parseFloat(split)) * 100) + '/' + Math.round(parseFloat(split) * 100);
+            const el = document.getElementById('dlPrepSummary');
+            if (el) el.textContent = `${optimizer} · batch ${batchSize} · ${splitPct}${aug !== 'none' ? ' · aug' : ''}`;
+        };
+
+        // ── Collect full preprocessing from UI ────────────────────────────────
+
+        function collectMLPreprocessingFull() {
+            return {
+                missing_values:    document.getElementById('mlMissingValues')?.value  || 'median_mode',
+                encoding:          document.getElementById('mlEncoding')?.value       || 'one_hot',
+                scaling:           document.getElementById('mlScaling')?.value        || 'standard',
+                feature_selection: document.getElementById('mlFeatureSelection')?.value === 'true',
+                train_test_split:  parseFloat(document.getElementById('mlTrainTestSplit')?.value || '0.2'),
+                scale:             document.getElementById('ppScale')?.checked        || false,
+                impute:            document.getElementById('ppImpute')?.checked       || false,
+                encode:            document.getElementById('ppEncode')?.value         || '',
+            };
+        }
+
+        function collectDLPreprocessingFull() {
+            return {
+                missing_values:    document.getElementById('dlMissingValues')?.value  || 'median_mode',
+                encoding:          document.getElementById('dlEncoding')?.value       || 'label',
+                scaling:           document.getElementById('dlScaling')?.value        || 'standard',
+                feature_selection: document.getElementById('dlFeatureSelection')?.value === 'true',
+                train_test_split:  parseFloat(document.getElementById('dlTrainTestSplit')?.value || '0.2'),
+                optimizer:         document.getElementById('dlOptimizer')?.value      || 'adam',
+                batch_size:        parseInt(document.getElementById('dlBatchSize')?.value || '32', 10),
+                augmentation:      document.getElementById('dlAugmentation')?.value   || 'none',
+                normalize:         document.getElementById('dlPpNormalize')?.checked  || false,
+                augment:           document.getElementById('dlPpAugment')?.checked    || false,
+                resize:            parseInt(document.getElementById('dlPpResize')?.value || '128', 10),
+            };
+        }
+
+        // ── Apply chatbot params to UI ─────────────────────────────────────────
+        // Called from applyChatParams() when URL has preprocessing/dl_config JSON
+
+        function applyChatbotPreprocessing(preprocessing, dlConfig) {
+            if (preprocessing && typeof preprocessing === 'object') {
+                // ML fields
+                if (preprocessing.missing_values && document.getElementById('mlMissingValues'))
+                    document.getElementById('mlMissingValues').value = preprocessing.missing_values;
+                if (preprocessing.encoding && document.getElementById('mlEncoding'))
+                    document.getElementById('mlEncoding').value = preprocessing.encoding;
+                if (preprocessing.scaling && document.getElementById('mlScaling'))
+                    document.getElementById('mlScaling').value = preprocessing.scaling;
+                if ('feature_selection' in preprocessing && document.getElementById('mlFeatureSelection'))
+                    document.getElementById('mlFeatureSelection').value = String(preprocessing.feature_selection);
+                if (preprocessing.train_test_split != null) {
+                    document.getElementById('mlTrainTestSplit').value = preprocessing.train_test_split;
+                    // Highlight matching split pill
+                    document.querySelectorAll('#mlSplitPills .split-pill').forEach(p => {
+                        p.classList.toggle('active', parseFloat(p.dataset.split) === preprocessing.train_test_split);
+                    });
+                }
+
+                // DL fields
+                if (preprocessing.missing_values && document.getElementById('dlMissingValues'))
+                    document.getElementById('dlMissingValues').value = preprocessing.missing_values;
+                if (preprocessing.encoding && document.getElementById('dlEncoding'))
+                    document.getElementById('dlEncoding').value = preprocessing.encoding;
+                if (preprocessing.scaling && document.getElementById('dlScaling'))
+                    document.getElementById('dlScaling').value = preprocessing.scaling;
+                if ('feature_selection' in preprocessing && document.getElementById('dlFeatureSelection'))
+                    document.getElementById('dlFeatureSelection').value = String(preprocessing.feature_selection);
+                if (preprocessing.train_test_split != null) {
+                    document.getElementById('dlTrainTestSplit').value = preprocessing.train_test_split;
+                    document.querySelectorAll('#dlSplitPills .split-pill').forEach(p => {
+                        p.classList.toggle('active', parseFloat(p.dataset.split) === preprocessing.train_test_split);
+                    });
+                }
+            }
+
+            if (dlConfig && typeof dlConfig === 'object') {
+                if (dlConfig.optimizer && document.getElementById('dlOptimizer'))
+                    document.getElementById('dlOptimizer').value = dlConfig.optimizer;
+                if (dlConfig.batch_size && document.getElementById('dlBatchSize'))
+                    document.getElementById('dlBatchSize').value = String(dlConfig.batch_size);
+                if (dlConfig.epochs && document.getElementById('dlEpochs')) {
+                    document.getElementById('dlEpochs').value = dlConfig.epochs;
+                    if (document.getElementById('dlEpochsSlider'))
+                        document.getElementById('dlEpochsSlider').value = dlConfig.epochs;
+                }
+                if ('augmentation' in dlConfig && document.getElementById('dlAugmentation'))
+                    document.getElementById('dlAugmentation').value = dlConfig.augmentation ? 'standard' : 'none';
+            }
+
+            updateMLPrepSummary();
+            updateDLPrepSummary();
+        }
+    </script>
+    <script>
+        (async function () {
+            if (!auth.requireAuth()) return;
+            renderSidebar('training');
+            await loadCurrentUser();
+
+            const $ = id => document.getElementById(id);
+
+            // ── Epochs defaults per DL type ────────────────────────────────────
+            const EPOCH_DEFAULTS = {
+                tabular: { value: 30,  max: 200, presets: [10, 30, 50, 100, 200], estFn: v => v <= 20 ? '~1 min' : v <= 50 ? '~2 min' : v <= 100 ? '~4 min' : '~8 min+' },
+                image:   { value: 15,  max: 100, presets: [5, 10, 15, 30, 50],    estFn: v => v <= 5  ? '~3 min' : v <= 15 ? '~10 min': v <= 30  ? '~20 min': '~40 min+' },
+                text:    { value: 10,  max: 50,  presets: [5, 10, 20, 30, 50],    estFn: v => v <= 5  ? '~2 min' : v <= 10 ? '~5 min' : v <= 20  ? '~10 min': '~20 min+' },
+            };
+
+            function updateEpochsUI() {
+                const input  = $('dlEpochs');
+                const slider = $('dlEpochsSlider');
+                if (!input || !slider) return;
+                const max = parseInt(input.max) || 200;
+                const val = Math.max(1, Math.min(parseInt(input.value) || 1, max));
+                const pct = (val / max) * 100;
+                slider.value = val; slider.max = max;
+                const fill = $('epochsBarFill');
+                if (fill) {
+                    fill.style.width = pct + '%';
+                    if (pct < 35) { fill.style.background = '#3FB950'; fill.style.boxShadow = '0 0 8px #3FB950'; }
+                    else if (pct < 70) { fill.style.background = 'var(--accent)'; fill.style.boxShadow = '0 0 8px var(--accent)'; }
+                    else { fill.style.background = '#D29922'; fill.style.boxShadow = '0 0 8px #D29922'; }
+                }
+                const badge = $('epochsHintBadge');
+                if (badge) {
+                    if (pct < 35) { badge.className = 'epochs-hint-badge low'; badge.textContent = '⚡ Fast'; }
+                    else if (pct < 70) { badge.className = 'epochs-hint-badge mid'; badge.textContent = '⏱ Moderate'; }
+                    else { badge.className = 'epochs-hint-badge high'; badge.textContent = '🔥 Long run'; }
+                }
+                const def = EPOCH_DEFAULTS[window._currentDLType || 'tabular'];
+                const est = $('epochsEst');
+                if (est && def) est.textContent = def.estFn(val);
+                document.querySelectorAll('.epochs-preset-btn').forEach(btn => {
+                    btn.classList.toggle('active', parseInt(btn.textContent) === val);
+                });
+            }
+
+            function buildEpochsPresets(presets) {
+                const container = $('epochsPresets');
+                if (!container) return;
+                container.innerHTML = presets.map(v =>
+                    `<button class="epochs-preset-btn" onclick="setEpochsPreset(${v})">${v}</button>`
+                ).join('');
+            }
+
+            window.setEpochsPreset = function (val) {
+                const input  = $('dlEpochs');
+                const slider = $('dlEpochsSlider');
+                if (input)  input.value  = val;
+                if (slider) slider.value = val;
+                updateEpochsUI();
+            };
+
+            $('dlEpochs').addEventListener('input', () => { $('dlEpochsSlider').value = $('dlEpochs').value; updateEpochsUI(); });
+            $('dlEpochsSlider').addEventListener('input', () => { $('dlEpochs').value = $('dlEpochsSlider').value; updateEpochsUI(); });
+
+            // ── Check Kaggle ───────────────────────────────────────────────────
+            try {
+                const kg = await api('/api/kaggle-train/status');
+                if (kg.connected) {
+                    $('useKaggleToggle').disabled = false;
+                    $('kaggleToggleNote').textContent = `Connected as ${kg.username} — GPU training available 🚀`;
+                    $('kaggleToggleNote').style.color = '#3FB950';
+                } else {
+                    $('kaggleToggleNote').innerHTML = '<a href="settings.html" style="color:var(--accent);">Connect Kaggle in Settings</a> to enable GPU training';
+                }
+            } catch (e) {
+                $('kaggleToggleNote').innerHTML = '<a href="settings.html" style="color:var(--accent);">Connect Kaggle in Settings</a> to enable GPU training';
+            }
+
+            const qs = new URLSearchParams(location.search);
+            const preProject      = qs.get('project');
+            const preDataset      = qs.get('dataset');
+            const preHyperparams  = qs.get('hyperparams')    ? JSON.parse(qs.get('hyperparams'))    : null;
+            const prePreprocessing = qs.get('preprocessing') ? JSON.parse(qs.get('preprocessing'))  : null;
+            const preDLConfig     = qs.get('dl_config')      ? JSON.parse(qs.get('dl_config'))      : null;
+
+            let projects = [], datasets = [], previewCache = {};
+            let currentTab    = 'ml';
+            let currentDLType = 'tabular';
+            window._currentDLType = 'tabular';
+            let resolvedDatasetProject = null;
+
+            async function resolveDatasetProject(datasetId) {
+                try { const ds = await api(`/api/datasets/${datasetId}`); return ds.project_id; }
+                catch (_) { return null; }
+            }
+
+            const MODEL_PARAM_DEFS = {
+                'Auto (Best)': [
+                    { name: 'time_budget', label: 'Time budget (sec)', type: 'number', placeholder: '60',  value: 60  },
+                    { name: 'max_trials',  label: 'Max trials',        type: 'number', placeholder: '20',  value: 20  },
+                ],
+                'Random Forest': [
+                    { name: 'n_estimators', label: 'Trees',        type: 'number', placeholder: '100', value: 100 },
+                    { name: 'max_depth',    label: 'Max depth',    type: 'number', placeholder: '10',  value: 10  },
+                    { name: 'max_features', label: 'Max features', type: 'select', options: ['auto','sqrt','log2','None'] },
+                ],
+                'Gradient Boosting': [
+                    { name: 'n_estimators',  label: 'Trees',         type: 'number', placeholder: '100', value: 100  },
+                    { name: 'learning_rate', label: 'Learning rate', type: 'number', placeholder: '0.1', value: 0.1, step: 0.01 },
+                    { name: 'max_depth',     label: 'Max depth',     type: 'number', placeholder: '6',   value: 6   },
+                ],
+                'Logistic Regression': [
+                    { name: 'penalty', label: 'Penalty',          type: 'select', options: ['l2','l1','elasticnet','none'] },
+                    { name: 'C',       label: 'Regularization C', type: 'number', placeholder: '1.0', value: 1.0, step: 0.1 },
+                ],
+                'Decision Tree': [
+                    { name: 'max_depth',         label: 'Max depth',         type: 'number', placeholder: 'None', value: '' },
+                    { name: 'min_samples_split', label: 'Min samples split', type: 'number', placeholder: '2',    value: 2 },
+                ],
+                'Extra Trees':     [{ name: 'n_estimators', label: 'Trees', type: 'number', placeholder: '100', value: 100 }, { name: 'max_depth', label: 'Max depth', type: 'number', placeholder: '10', value: 10 }],
+                'AdaBoost':        [{ name: 'n_estimators', label: 'Estimators', type: 'number', placeholder: '50', value: 50 }, { name: 'learning_rate', label: 'Learning rate', type: 'number', placeholder: '1.0', value: 1.0, step: 0.1 }],
+                'SVM':             [{ name: 'C', label: 'Regularization C', type: 'number', placeholder: '1.0', value: 1.0, step: 0.1 }, { name: 'kernel', label: 'Kernel', type: 'select', options: ['rbf','linear','poly','sigmoid'] }],
+                'KNN':             [{ name: 'n_neighbors', label: 'Neighbors', type: 'number', placeholder: '5', value: 5 }],
+                'Ridge':           [{ name: 'alpha', label: 'Alpha', type: 'number', placeholder: '1.0', value: 1.0, step: 0.1 }],
+                'Lasso':           [{ name: 'alpha', label: 'Alpha', type: 'number', placeholder: '1.0', value: 1.0, step: 0.1 }],
+                'ElasticNet':      [{ name: 'alpha', label: 'Alpha', type: 'number', placeholder: '1.0', value: 1.0, step: 0.1 }, { name: 'l1_ratio', label: 'L1 ratio', type: 'number', placeholder: '0.5', value: 0.5, step: 0.1 }],
+            };
+
+            const DL_PARAM_DEFS = {
+                tabular: [
+                    { name: 'learning_rate', label: 'Learning rate', type: 'number', placeholder: '0.001',  value: 0.001,  step: 0.0005 },
+                    { name: 'batch_size',    label: 'Batch size',    type: 'number', placeholder: '32',     value: 32 },
+                    { name: 'dropout',       label: 'Dropout',       type: 'number', placeholder: '0.3',    value: 0.3,    step: 0.05 },
+                ],
+                image: [
+                    { name: 'learning_rate', label: 'Learning rate', type: 'number', placeholder: '0.0005', value: 0.0005, step: 0.0001 },
+                    { name: 'batch_size',    label: 'Batch size',    type: 'number', placeholder: '16',     value: 16 },
+                    { name: 'weight_decay',  label: 'Weight decay',  type: 'number', placeholder: '0.0001', value: 0.0001, step: 0.0001 },
+                ],
+                text: [
+                    { name: 'learning_rate',   label: 'Learning rate',   type: 'number', placeholder: '0.001', value: 0.001, step: 0.0005 },
+                    { name: 'batch_size',      label: 'Batch size',      type: 'number', placeholder: '32',    value: 32 },
+                    { name: 'sequence_length', label: 'Sequence length', type: 'number', placeholder: '128',   value: 128 },
+                ],
+            };
+
+            function renderFields(containerId, defs) {
+                const container = $(containerId);
+                if (!container) return;
+                container.innerHTML = defs.map(def => {
+                    if (def.type === 'select')
+                        return `<div style="display:grid;gap:8px;"><label>${def.label}</label><select data-param-name="${def.name}" data-param-type="select" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg-elev-2);color:var(--text);">${def.options.map(opt => `<option value="${opt}">${opt}</option>`).join('')}</select></div>`;
+                    if (def.type === 'checkbox')
+                        return `<label style="display:flex;align-items:center;gap:10px;"><input data-param-name="${def.name}" data-param-type="checkbox" type="checkbox" ${def.value ? 'checked' : ''} />${def.label}</label>`;
+                    return `<div style="display:grid;gap:8px;"><label>${def.label}</label><input data-param-name="${def.name}" data-param-type="number" type="${def.type}" placeholder="${def.placeholder}" value="${def.value ?? ''}" step="${def.step ?? 1}" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg-elev-2);color:var(--text);" /></div>`;
+                }).join('');
+            }
+
+            function renderModelSettings(modelName) { renderFields('mlParamFields', MODEL_PARAM_DEFS[modelName] || MODEL_PARAM_DEFS['Auto (Best)']); }
+            function renderDLSettings(type)         { renderFields('dlParamFields', DL_PARAM_DEFS[type] || DL_PARAM_DEFS.tabular); }
+
+            function collectFields(containerId) {
+                const container = $(containerId);
+                if (!container) return null;
+                const params = {};
+                container.querySelectorAll('[data-param-name]').forEach(el => {
+                    const name = el.getAttribute('data-param-name');
+                    const type = el.getAttribute('data-param-type');
+                    if (type === 'checkbox') { params[name] = el.checked; return; }
+                    const value = el.value;
+                    if (value === '' || value == null) return;
+                    params[name] = type === 'number' ? Number(value) : value;
+                });
+                return Object.keys(params).length ? params : null;
+            }
+
+            function applyPresetValues(hyperparams = {}, preprocessing = {}) {
+                if (hyperparams && typeof hyperparams === 'object') {
+                    Object.entries(hyperparams).forEach(([key, value]) => {
+                        const field = document.querySelector(`[data-param-name="${key}"]`);
+                        if (field) field.value = value;
+                    });
+                }
+                if (preprocessing && typeof preprocessing === 'object') {
+                    if ('scale'             in preprocessing && $('ppScale'))         $('ppScale').checked         = Boolean(preprocessing.scale);
+                    if ('impute'            in preprocessing && $('ppImpute'))        $('ppImpute').checked        = Boolean(preprocessing.impute);
+                    if ('encode'            in preprocessing && $('ppEncode'))        $('ppEncode').value          = preprocessing.encode || '';
+                    if ('feature_selection' in preprocessing && $('ppFeatureSelect')) $('ppFeatureSelect').value   = preprocessing.feature_selection || '';
+                    if ('normalize'         in preprocessing && $('dlPpNormalize'))   $('dlPpNormalize').checked   = Boolean(preprocessing.normalize);
+                    if ('augment'           in preprocessing && $('dlPpAugment'))     $('dlPpAugment').checked     = Boolean(preprocessing.augment);
+                    if ('resize'            in preprocessing && $('dlPpResize'))      $('dlPpResize').value        = preprocessing.resize;
+                }
+            }
+
+            // ── Tab switching ──────────────────────────────────────────────────
+            window.switchTab = function (tab) {
+                currentTab = tab;
+                $('tabML').classList.toggle('active', tab === 'ml');
+                $('tabDL').classList.toggle('active', tab === 'dl');
+                $('panelML').style.display   = tab === 'ml' ? '' : 'none';
+                $('panelDL').style.display   = tab === 'dl' ? '' : 'none';
+                $('resultsSection').style.display = 'none';
+                $('logSection').style.display     = 'none';
+            };
+
+            window.selectDLType = function (type) {
+                currentDLType = type;
+                window._currentDLType = type;
+                ['tabular', 'image', 'text'].forEach(t => {
+                    $('dlType' + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle('active', t === type);
+                    $('dlOpt'  + t.charAt(0).toUpperCase() + t.slice(1)).style.display = t === type ? '' : 'none';
+                });
+                // Show/hide augmentation note
+                const augSel = $('dlAugmentation');
+                if (augSel) {
+                    const isImage = type === 'image';
+                    augSel.closest('.dl-extra-field').style.opacity = isImage ? '1' : '0.4';
+                    augSel.disabled = !isImage;
+                    if (!isImage) augSel.value = 'none';
+                }
+                renderDLSettings(type);
+                applyPresetValues(preHyperparams, prePreprocessing);
+                const def = EPOCH_DEFAULTS[type];
+                if (def) {
+                    const input  = $('dlEpochs');
+                    const slider = $('dlEpochsSlider');
+                    const maxLbl = $('epochsMaxLabel');
+                    input.max = def.max; input.value = def.value;
+                    if (slider) { slider.max = def.max; slider.value = def.value; }
+                    if (maxLbl) maxLbl.textContent = def.max;
+                    buildEpochsPresets(def.presets);
+                    updateEpochsUI();
+                }
+                updateDLPrepSummary();
+            };
+
+            // ── Score target column ────────────────────────────────────────────
+            function targetScore(col) {
+                const name = col.name.toLowerCase();
+                const goodNames = ['target','label','class','outcome','y','churn','fraud','result','category','status','type','gender','survived','default','price','amount','total'];
+                const badNames  = ['id','_id','uuid','timestamp','date','time','created','updated','index'];
+                let score = 0;
+                if (goodNames.some(t => name === t))          score += 100;
+                if (goodNames.some(t => name.includes(t)))    score += 40;
+                if (badNames.some(b  => name.includes(b)))    score -= 200;
+                if (col.dtype === 'bool')                                               score += 60;
+                if (col.dtype.includes('int') && col.n_unique >= 2 && col.n_unique <= 50) score += 30;
+                if (col.dtype === 'object'    && col.n_unique >= 2 && col.n_unique <= 20) score += 50;
+                return score;
+            }
+
+            function assessTarget(col) {
+                if (!col) return null;
+                const name = col.name.toLowerCase();
+                const bad = ['id','_id','uuid','timestamp','date','time'];
+                if (bad.some(b => name.includes(b)))
+                    return { type: 'warn', msg: `⚠ "${col.name}" looks like an ID or timestamp — not a good target.` };
+                if (col.dtype === 'object' && col.n_unique > 30)
+                    return { type: 'warn', msg: `⚠ "${col.name}" has ${col.n_unique} unique values — accuracy may be low.` };
+                if ((col.dtype === 'object' || col.dtype.includes('int')) && col.n_unique >= 2 && col.n_unique <= 20)
+                    return { type: 'good', msg: `✓ ${col.n_unique} unique values → good classification target.` };
+                return null;
+            }
+
+            // ── Load data ──────────────────────────────────────────────────────
+            async function loadProjects() {
+                projects = await api('/api/projects');
+                const opts = projects.length
+                    ? projects.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('')
+                    : '<option value="">— create a project first —</option>';
+                $('projectSel').innerHTML   = opts;
+                $('dlProjectSel').innerHTML = opts;
+                if (preProject) { $('projectSel').value = preProject; $('dlProjectSel').value = preProject; }
+                else if (preDataset) {
+                    const projectId = await resolveDatasetProject(preDataset);
+                    if (projectId) { $('projectSel').value = projectId; $('dlProjectSel').value = projectId; resolvedDatasetProject = projectId; }
+                }
+                await onProjectChange();
+                await onDLProjectChange();
+            }
+
+            async function onProjectChange() {
+                const pid = $('projectSel').value; if (!pid) return;
+                datasets = await api(`/api/datasets/project/${pid}`).catch(() => []);
+                $('datasetSel').innerHTML = datasets.length
+                    ? datasets.map(d => `<option value="${d.id}">${escapeHtml(d.filename)} · ${d.n_rows}×${d.n_cols}</option>`).join('')
+                    : '<option value="">— upload a dataset first —</option>';
+                if (preDataset && datasets.find(d => d.id == preDataset)) $('datasetSel').value = preDataset;
+                else if (resolvedDatasetProject && pid == resolvedDatasetProject && datasets.length === 1) $('datasetSel').selectedIndex = 0;
+                await onDatasetChange();
+            }
+
+            async function onDLProjectChange() {
+                const pid = $('dlProjectSel').value; if (!pid) return;
+                const ds  = await api(`/api/datasets/project/${pid}`).catch(() => []);
+                $('dlDatasetSel').innerHTML = ds.length
+                    ? ds.map(d => `<option value="${d.id}">${escapeHtml(d.filename)} · ${d.n_rows}×${d.n_cols}</option>`).join('')
+                    : '<option value="">— upload a dataset first —</option>';
+                if (preDataset && ds.find(d => d.id == preDataset)) $('dlDatasetSel').value = preDataset;
+                else if (resolvedDatasetProject && pid == resolvedDatasetProject && ds.length === 1) $('dlDatasetSel').selectedIndex = 0;
+                await onDLDatasetChange();
+            }
+
+            async function onDatasetChange() {
+                const did = $('datasetSel').value; if (!did) return;
+                if (!previewCache[did]) previewCache[did] = await api(`/api/datasets/${did}/preview`).catch(() => null);
+                const preview = previewCache[did]; if (!preview) return;
+                const ranked = [...preview.columns].sort((a, b) => targetScore(b) - targetScore(a));
+                const best   = ranked[0]?.name;
+                $('targetSel').innerHTML = preview.columns.map(c =>
+                    `<option value="${escapeHtml(c.name)}" ${c.name === best ? 'selected' : ''}>${escapeHtml(c.name)} (${c.dtype}, ${c.n_unique ?? '?'} unique)</option>`
+                ).join('');
+                onTargetChange(preview.columns);
+            }
+
+            async function onDLDatasetChange() {
+                const did = $('dlDatasetSel').value; if (!did) return;
+                if (!previewCache[did]) previewCache[did] = await api(`/api/datasets/${did}/preview`).catch(() => null);
+                const preview = previewCache[did]; if (!preview) return;
+                const ranked = [...preview.columns].sort((a, b) => targetScore(b) - targetScore(a));
+                const best   = ranked[0]?.name;
+                const opts   = preview.columns.map(c =>
+                    `<option value="${escapeHtml(c.name)}" ${c.name === best ? 'selected' : ''}>${escapeHtml(c.name)} (${c.dtype})</option>`
+                ).join('');
+                $('dlTargetSel').innerHTML = opts;
+                const textCols = preview.columns.filter(c => c.dtype === 'object' && c.n_unique > 20);
+                $('dlTextColSel').innerHTML  = textCols.length
+                    ? textCols.map(c => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join('')
+                    : preview.columns.map(c => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join('');
+                $('dlTextLabelSel').innerHTML = opts;
+                onDLTargetChange(preview.columns);
+            }
+
+            function onTargetChange(cols) {
+                const col  = cols.find(c => c.name === $('targetSel').value);
+                const hint = assessTarget(col);
+                const el   = $('targetHint');
+                if (hint) { el.className = `target-hint ${hint.type}`; el.textContent = hint.msg; el.style.display = ''; }
+                else el.style.display = 'none';
+            }
+
+            function onDLTargetChange(cols) {
+                const col  = cols ? cols.find(c => c.name === $('dlTargetSel').value) : null;
+                const hint = assessTarget(col);
+                const el   = $('dlTargetHint');
+                if (hint) { el.className = `target-hint ${hint.type}`; el.textContent = hint.msg; el.style.display = ''; }
+                else el.style.display = 'none';
+            }
+
+            $('projectSel').addEventListener('change', onProjectChange);
+            $('datasetSel').addEventListener('change', onDatasetChange);
+            $('targetSel').addEventListener('change', () => onTargetChange(previewCache[$('datasetSel').value]?.columns || []));
+            $('dlProjectSel').addEventListener('change', onDLProjectChange);
+            $('dlDatasetSel').addEventListener('change', onDLDatasetChange);
+            $('dlTargetSel').addEventListener('change', () => onDLTargetChange(previewCache[$('dlDatasetSel').value]?.columns || []));
+            $('modelSel').addEventListener('change', e => { renderModelSettings(e.target.value); applyPresetValues(preHyperparams, prePreprocessing); });
+
+            await loadProjects();
+            renderModelSettings($('modelSel')?.value || 'Auto (Best)');
+            renderDLSettings(currentDLType);
+            buildEpochsPresets(EPOCH_DEFAULTS.tabular.presets);
+            updateEpochsUI();
+            updateMLPrepSummary();
+            updateDLPrepSummary();
+
+            async function waitForCondition(predicate, timeout = 2000, interval = 80) {
+                const deadline = Date.now() + timeout;
+                while (Date.now() < deadline) {
+                    if (predicate()) return true;
+                    await new Promise(resolve => setTimeout(resolve, interval));
+                }
+                return false;
+            }
+
+            async function applyChatParams() {
+                const urlParams   = new URLSearchParams(location.search);
+                const chatTarget  = urlParams.get('target');
+                const chatTask    = urlParams.get('task')   || 'auto';
+                const chatModel   = urlParams.get('model')  || 'Auto (Best)';
+                const chatType    = urlParams.get('type')   || 'ml';
+                const chatDs      = urlParams.get('dataset');
+                const chatPrep    = urlParams.get('preprocessing') ? JSON.parse(urlParams.get('preprocessing')) : prePreprocessing;
+                const chatDLConf  = urlParams.get('dl_config')     ? JSON.parse(urlParams.get('dl_config'))     : preDLConfig;
+
+                if (!chatTarget && !chatDs) return;
+                if (chatType === 'dl') switchTab('dl');
+
+                if (chatDs) {
+                    await waitForCondition(() => $('datasetSel')?.options.length > 0 || $('dlDatasetSel')?.options.length > 0, 3000);
+                    [$('datasetSel'), $('dlDatasetSel')].forEach(sel => {
+                        if (!sel) return;
+                        for (const opt of sel.options) {
+                            if (opt.value == chatDs) { sel.value = chatDs; sel.dispatchEvent(new Event('change')); break; }
+                        }
+                    });
+                }
+
+                await waitForCondition(() => {
+                    if (chatType === 'ml') return $('targetSel')?.options.length > 0;
+                    return $('dlTargetSel')?.options.length > 0 || $('dlTextColSel')?.options.length > 0;
+                }, 3000);
+
+                if (chatType === 'ml') {
+                    if (chatTarget && $('targetSel')) { $('targetSel').value = chatTarget; $('targetSel').dispatchEvent(new Event('change')); }
+                    if (chatTask  && $('taskSel'))    $('taskSel').value  = chatTask;
+                    if (chatModel && $('modelSel'))   { $('modelSel').value = chatModel; renderModelSettings(chatModel); }
+                } else {
+                    if (chatTarget && $('dlTargetSel')) { $('dlTargetSel').value = chatTarget; $('dlTargetSel').dispatchEvent(new Event('change')); }
+                    const modelLower = (chatModel || '').toLowerCase();
+                    if (modelLower.includes('resnet') || modelLower.includes('image')) selectDLType('image');
+                    else if (modelLower.includes('lstm') || modelLower.includes('text') || modelLower.includes('bilstm')) selectDLType('text');
+                    else selectDLType('tabular');
+                }
+
+                // ── Apply chatbot preprocessing + DL config to UI ──
+                applyChatbotPreprocessing(chatPrep, chatDLConf);
+                applyPresetValues(preHyperparams, chatPrep);
+
+                const existing = document.getElementById('chatBanner');
+                if (existing) existing.remove();
+                const banner = document.createElement('div');
+                banner.id = 'chatBanner';
+                banner.style.cssText = 'background:var(--accent-soft);border:1px solid rgba(0,229,255,.3);border-radius:12px;padding:14px 18px;margin-bottom:20px;font-size:14px;display:flex;align-items:center;justify-content:space-between;';
+                banner.innerHTML = `
+                    <span>🤖 AI config: <strong>${chatTarget || '—'}</strong> · <strong>${chatType === 'dl' ? 'Deep Learning' : 'Machine Learning'}</strong> · ${chatTask} · <strong>${chatModel}</strong></span>
+                    <button onclick="this.parentElement.remove()" style="background:none;border:none;color:var(--text-faint);cursor:pointer;font-size:18px;">×</button>
+                `;
+                const mainEl = document.querySelector('.main');
+                if (mainEl) {
+                    const firstChild = mainEl.firstElementChild;
+                    if (firstChild) mainEl.insertBefore(banner, firstChild.nextSibling);
+                    else mainEl.appendChild(banner);
+                }
+            }
+
+            await applyChatParams();
+
+            // ── Progress stages ────────────────────────────────────────────────
+            const ML_STAGES = ['📂 Loading','🔧 Preprocessing','🧪 Cross-validating','🏋️ Fitting best','📊 Evaluating','💾 Saving'];
+            const DL_STAGES = ['📂 Loading','🔧 Preprocessing','🏗️ Building model','🔥 Training epochs','📊 Evaluating','💾 Saving'];
+            const STAGE_KEYS = ['stage0','stage1','stage2','stage3','stage4','stage5'];
+
+            function detectStage(log, isDL) {
+                const l = log.toLowerCase();
+                if (l.includes('saved →') || l.includes('done in') || l.includes('✅'))       return 5;
+                if (l.includes('📊') || l.includes('evaluating on test'))                      return 4;
+                if (l.includes('🏆') || l.includes('🏋') || l.includes('fitting ') || l.includes('best model') || l.includes('epoch')) return 3;
+                if (l.includes('⏳') || l.includes('🧪') || l.includes('testing ') || l.includes('cv-') ||
+                    l.includes('gradient boosting') || l.includes('random forest') || l.includes('logistic') ||
+                    l.includes('decision tree') || l.includes('extra trees') || l.includes('adaboost') ||
+                    l.includes('svm') || l.includes('knn') || l.includes('ridge') || l.includes('lasso')) return 2;
+                if (l.includes('after sanitize') || l.includes('dropping') || l.includes('task type') || l.includes('automl:')) return 1;
+                if (l.includes('loading') || l.includes('loaded') || l.includes('rows ×') || l.includes('starting')) return 0;
+                return -1;
+            }
+
+            function updateProgress(pct, stage) {
+                $('progressBar').style.width = pct + '%';
+                $('progressPct').textContent = pct + '%';
+                STAGE_KEYS.forEach((k, i) => {
+                    const el = $(k);
+                    if (!el) return;
+                    el.className = 'stage-pill' + (i < stage ? ' done' : i === stage ? ' active' : '');
+                });
+            }
+
+            async function pollJob(jobId, btn, isDL) {
+                return new Promise((resolve, reject) => {
+                    let lastStage = -1;
+                    const iv = setInterval(async () => {
+                        try {
+                            const r = await api(`/api/training/status/${jobId}`);
+                            if (r.log) {
+                                $('logBox').innerHTML = r.log.split('\n').map(line => {
+                                    if (!line.trim()) return '';
+                                    if (line.includes('🏆') || line.includes('✅') || line.includes('Done in') || line.includes('Saved →')) return `<span class="ok">${escapeHtml(line)}</span>`;
+                                    if (line.includes('⭐')) return `<span style="color:#FFD700;">${escapeHtml(line)}</span>`;
+                                    if (line.includes('⏳') || line.includes('🏋️') || line.includes('📊')) return `<span class="accent">${escapeHtml(line)}</span>`;
+                                    if (line.includes('✓') || line.includes('cv-')) return `<span style="color:#58A6FF;">${escapeHtml(line)}</span>`;
+                                    if (line.includes('✗') || line.includes('FAILED') || line.includes('✖') || line.includes('Error')) return `<span class="err">${escapeHtml(line)}</span>`;
+                                    if (line.includes('⚠') || line.includes('WARNING')) return `<span class="warn">${escapeHtml(line)}</span>`;
+                                    if (line.includes('🧪') || line.includes('Testing')) return `<span style="color:#D29922;">${escapeHtml(line)}</span>`;
+                                    return `<span class="dim">${escapeHtml(line)}</span>`;
+                                }).filter(Boolean).join('\n');
+                                $('logBox').scrollTop = $('logBox').scrollHeight;
+                                const stage    = detectStage(r.log, isDL);
+                                const curStage = Math.max(stage, lastStage);
+                                if (curStage > lastStage || (curStage === lastStage && curStage >= 2)) {
+                                    lastStage = curStage;
+                                    const cvLines = (r.log.match(/cv[- =]/gi) || []).length;
+                                    let pct;
+                                    if (curStage === 2) pct = Math.min(20 + cvLines * 8, 75);
+                                    else pct = Math.min(Math.round((curStage / 5) * 90) + 5, 92);
+                                    updateProgress(pct, curStage);
+                                    const stages = isDL ? DL_STAGES : ML_STAGES;
+                                    $('statusText').textContent = stages[curStage] || 'Training…';
+                                }
+                            }
+                            if (r.status === 'completed') { clearInterval(iv); updateProgress(100, 6); $('statusText').textContent = '✅ Training complete!'; resolve(r); }
+                            else if (r.status === 'failed') { clearInterval(iv); $('progressBar').style.background = '#F85149'; reject(new Error(r.error || 'Training failed')); }
+                        } catch (e) { clearInterval(iv); reject(e); }
+                    }, 3000);
+                });
+            }
+
+            // ── ML Train ───────────────────────────────────────────────────────
+            $('trainBtn').addEventListener('click', async () => {
+                const did    = parseInt($('datasetSel').value, 10);
+                const target = $('targetSel').value;
+                const task   = $('taskSel').value;
+                if (!did || !target) { toast('Select a dataset and target column.', 'error'); return; }
+
+                $('trainBtn').disabled = true;
+                $('statusBanner').style.display   = '';
+                $('logSection').style.display     = '';
+                $('resultsSection').style.display = 'none';
+                $('logBox').innerHTML = '<span class="dim">Starting AutoML training…</span>';
+                updateProgress(5, 0);
+
+                try {
+                    const useKaggle = $('useKaggleToggle') ? $('useKaggleToggle').checked : false;
+                    const job = await api('/api/training/train', {
+                        method: 'POST',
+                        body: {
+                            dataset_id:     did,
+                            target_column:  target,
+                            task_type:      task,
+                            selected_model: $('modelSel').value,
+                            output_format:  $('formatSel').value,
+                            use_kaggle:     useKaggle,
+                            hyperparams:    collectFields('mlParamFields') || preHyperparams || undefined,
+                            preprocessing:  collectMLPreprocessingFull(),   // ← full chatbot-aware preprocessing
+                        },
+                    });
+                    toast(useKaggle ? '🚀 Kaggle GPU training started!' : 'Training started ✓', 'success');
+                    const result = await pollJob(job.job_id, $('trainBtn'), false);
+                    $('statusBanner').style.display = 'none';
+                    renderResults(result);
+                    await loadCurrentUser();
+                    toast('Training complete! ✅', 'success');
+                } catch (e) {
+                    $('statusBanner').style.display = 'none';
+                    $('logBox').innerHTML += `\n<span class="err">✖ ${escapeHtml(e.message)}</span>`;
+                    toast(e.message, 'error');
+                } finally { $('trainBtn').disabled = false; }
+            });
+
+            // ── DL Train ───────────────────────────────────────────────────────
+            $('dlTrainBtn').addEventListener('click', async () => {
+                const did = parseInt($('dlDatasetSel').value, 10);
+                if (!did) { toast('Select a dataset first.', 'error'); return; }
+
+                const epochs = parseInt($('dlEpochs').value, 10) || EPOCH_DEFAULTS[currentDLType]?.value || 20;
+                const body = { dataset_id: did, dl_type: currentDLType, epochs };
+
+                if (currentDLType === 'tabular') {
+                    body.target_column = $('dlTargetSel').value;
+                    if (!body.target_column) { toast('Select a target column.', 'error'); return; }
+                } else if (currentDLType === 'image') {
+                    body.model_arch    = $('dlArch').value;
+                    body.img_size      = parseInt($('dlImgSize').value, 10) || 128;
+                    body.target_column = 'image_class';
+                } else if (currentDLType === 'text') {
+                    body.text_column   = $('dlTextColSel').value;
+                    body.target_column = $('dlTextLabelSel').value;
+                    if (!body.text_column || !body.target_column) { toast('Select text column and label column.', 'error'); return; }
+                }
+
+                $('dlTrainBtn').disabled = true;
+                $('statusBanner').style.display   = '';
+                $('logSection').style.display     = '';
+                $('resultsSection').style.display = 'none';
+                $('logBox').innerHTML = `<span class="dim">Starting Deep Learning training (${epochs} epochs)…</span>`;
+                updateProgress(5, 0);
+
+                try {
+                    body.hyperparams   = collectFields('dlParamFields') || preHyperparams || undefined;
+                    body.preprocessing = collectDLPreprocessingFull();  // ← full chatbot-aware DL config
+                    const job = await api('/api/training/dl/train', { method: 'POST', body });
+                    toast(`DL Training started 🧠 (${epochs} epochs)`, 'success');
+                    const result = await pollJob(job.job_id, $('dlTrainBtn'), true);
+                    $('statusBanner').style.display = 'none';
+                    renderResults(result);
+                    await loadCurrentUser();
+                    toast('Deep Learning complete! 🧠✅', 'success');
+                } catch (e) {
+                    $('statusBanner').style.display = 'none';
+                    $('logBox').innerHTML += `\n<span class="err">✖ ${escapeHtml(e.message)}</span>`;
+                    toast(e.message, 'error');
+                } finally { $('dlTrainBtn').disabled = false; }
+            });
+
+            // ── Render results ─────────────────────────────────────────────────
+            function renderResults(r) {
+                const log = r.log || '(no log)';
+                $('logBox').innerHTML = log.split('\n').map(line => {
+                    if (line.includes('⚠') || line.includes('WARNING')) return `<span class="warn">${escapeHtml(line)}</span>`;
+                    if (line.includes('Best') || line.includes('Done') || line.includes('Saved'))  return `<span class="ok">${escapeHtml(line)}</span>`;
+                    if (line.includes('cv-') || line.includes('acc=') || line.includes('Accuracy') || line.includes('Epoch')) return `<span class="accent">${escapeHtml(line)}</span>`;
+                    if (line.includes('FAILED') || line.includes('Error')) return `<span class="err">${escapeHtml(line)}</span>`;
+                    return `<span class="dim">${escapeHtml(line)}</span>`;
+                }).join('\n');
+                $('logBox').scrollTop = $('logBox').scrollHeight;
+
+                const model = r.model || {};
+                if (!model.id) {
+                    const mid = r.model_id;
+                    if (mid) {
+                        api(`/api/training/models/${mid}`).then(m => { r.model = m; r.metrics = m.metrics || r.metrics; r.feature_columns = m.feature_columns || []; renderResults(r); }).catch(() => {});
+                    }
+                    return;
+                }
+
+                $('resultsSection').style.display = '';
+                $('bestName').textContent  = model.name || '—';
+                $('bestMeta').textContent  = `${model.framework || ''} · ${model.task_type || ''} · target: ${model.target_column || '—'}`;
+                $('downloadBtn').onclick   = () => downloadModel(model.id, model.name);
+                $('tryItBtn').href         = `playground.html?model=${model.id}`;
+
+                const m      = r.metrics || {};
+                const fmt    = v => typeof v === 'number' ? (v <= 1 ? (v * 100).toFixed(1) + '%' : v.toFixed(2)) : '—';
+                const fmtRaw = v => typeof v === 'number' ? v.toFixed(4) : '—';
+                const cards  = [];
+                if (m.accuracy  != null) cards.push(['Accuracy',  fmt(m.accuracy)]);
+                if (m.f1        != null) cards.push(['F1 Score',  fmt(m.f1)]);
+                if (m.precision != null) cards.push(['Precision', fmt(m.precision)]);
+                if (m.recall    != null) cards.push(['Recall',    fmt(m.recall)]);
+                if (m.r2        != null) cards.push(['R²',        fmtRaw(m.r2)]);
+                if (m.rmse      != null) cards.push(['RMSE',      fmtRaw(m.rmse)]);
+                if (m.mae       != null) cards.push(['MAE',       fmtRaw(m.mae)]);
+                $('metricRow').innerHTML = cards.map(([l, v]) =>
+                    `<div class="metric-card"><div class="ml">${l}</div><div class="mv">${v}</div></div>`).join('');
+
+                const qb = $('qualityBanner');
+                if (m.accuracy != null) {
+                    const a = m.accuracy;
+                    if (a < 0.35) { qb.style.cssText = 'display:block;background:rgba(248,81,73,.10);border:1px solid rgba(248,81,73,.35);color:#F85149;border-radius:12px;padding:16px 20px;font-size:14px;margin-top:20px;'; qb.innerHTML = `<strong>⚠ Low accuracy (${fmt(a)})</strong> — model is barely better than random. Try a different target column.`; }
+                    else if (a < 0.65) { qb.style.cssText = 'display:block;background:rgba(210,153,34,.10);border:1px solid rgba(210,153,34,.35);color:#D29922;border-radius:12px;padding:16px 20px;font-size:14px;margin-top:20px;'; qb.innerHTML = `<strong>Moderate accuracy (${fmt(a)})</strong> — there's a signal, could be better.`; }
+                    else { qb.style.cssText = 'display:block;background:rgba(63,185,80,.10);border:1px solid rgba(63,185,80,.30);color:#3FB950;border-radius:12px;padding:16px 20px;font-size:14px;margin-top:20px;'; qb.innerHTML = `<strong>✓ Good result (${fmt(a)})</strong> — model learned a meaningful pattern. Try it in the playground!`; }
+                } else if (m.r2 != null) {
+                    qb.style.cssText = 'display:block;background:var(--bg-elev);border:1px solid var(--line);border-radius:12px;padding:16px 20px;font-size:14px;margin-top:20px;color:var(--text-dim);';
+                    qb.innerHTML = `R² = ${fmtRaw(m.r2)} (1.0 = perfect, 0.0 = random baseline)`;
+                }
+
+                if (r.confusion_matrix && m.confusion_labels) { $('cmSection').style.display = ''; renderConfusion(r.confusion_matrix, m.confusion_labels); }
+                else $('cmSection').style.display = 'none';
+                $('resultsSection').scrollIntoView({ behavior: 'smooth' });
+            }
+
+            function renderConfusion(matrix, labels) {
+                const max  = Math.max(...matrix.flat()) || 1;
+                const card = $('cmCard');
+                card.style.padding = '24px'; card.style.overflowX = 'auto';
+                const cells = matrix.map((row, i) => row.map((v, j) => {
+                    const p  = v / max;
+                    const bg = i === j ? `rgba(63,185,80,${p * .5})` : `rgba(248,81,73,${p * .35})`;
+                    return `<td style="background:${bg};text-align:center;padding:14px 18px;border:1px solid var(--line-soft);font-family:'JetBrains Mono',monospace;font-size:14px;">${v}</td>`;
+                }).join(''));
+                card.innerHTML = `
+                    <table style="border-collapse:collapse;margin:0 auto;">
+                        <thead><tr>
+                            <th style="padding:8px 14px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-faint);">actual ↓ / pred →</th>
+                            ${labels.map(l => `<th style="padding:8px 14px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-dim);text-transform:uppercase;">${escapeHtml(String(l))}</th>`).join('')}
+                        </tr></thead>
+                        <tbody>${matrix.map((row, i) => `
+                            <tr>
+                                <th style="padding:8px 14px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-dim);text-transform:uppercase;">${escapeHtml(String(labels[i]))}</th>
+                                ${cells[i]}
+                            </tr>`).join('')}
+                        </tbody>
+                    </table>
+                    <p style="text-align:center;color:var(--text-faint);font-family:'JetBrains Mono',monospace;font-size:11px;margin-top:14px;">diagonal = correct (green) · off-diagonal = errors (red)</p>`;
+            }
+
+            function escapeHtml(s) {
+                return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+            }
+
+            async function downloadModel(modelId, modelName) {
+                const btn = $('downloadBtn');
+                btn.textContent = '⏳ Downloading…'; btn.disabled = true;
+                try {
+                    const res = await fetch(`${API_BASE}/api/training/models/${modelId}/download`, {
+                        headers: { 'Authorization': `Bearer ${localStorage.getItem('saa.token')}` },
+                    });
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    const blob = await res.blob();
+                    const url  = URL.createObjectURL(blob);
+                    const a    = document.createElement('a');
+                    a.href = url; a.download = `model_${modelId}_${(modelName || 'model').replace(/\s+/g, '_')}.pt`;
+                    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    btn.textContent = '✓ Downloaded';
+                    setTimeout(() => { btn.textContent = '⬇ Download model'; btn.disabled = false; }, 2000);
+                } catch (e) {
+                    btn.textContent = '⬇ Download model'; btn.disabled = false;
+                    toast('Download failed: ' + e.message, 'error');
+                }
+            }
+        })();
+    </script>
+</body>
+
+</html>

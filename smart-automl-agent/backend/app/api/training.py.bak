@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="api-base" content="https://modelgenx.site" />
+
+    <title>Playground — Model Gen X</title>
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Inter:wght@300..600&family=JetBrains+Mono:wght@400..600&family=Cairo:wght@300..700&display=swap"
+        rel="stylesheet" />
+
+    <link rel="stylesheet" href="../css/main.css" />
+    <link rel="stylesheet" href="../css/app.css" />
+
+    <style>
+        .pg-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 1100px) {
+            .pg-grid { grid-template-columns: 1fr; }
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 14px;
+        }
+
+        .result-display {
+            background: var(--bg-elev);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 40px 32px;
+            text-align: center;
+            min-height: 260px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .result-prediction {
+            font-family: 'Fraunces', serif;
+            font-size: 64px;
+            letter-spacing: -0.04em;
+            color: var(--accent);
+            line-height: 1;
+            margin-bottom: 12px;
+            word-break: break-word;
+            max-width: 100%;
+        }
+
+        .result-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            letter-spacing: 0.16em;
+            color: var(--text-faint);
+            text-transform: uppercase;
+        }
+
+        .prob-bar { margin-top: 24px; width: 100%; }
+
+        .prob-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .prob-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            min-width: 80px;
+            text-align: left;
+            color: var(--text-dim);
+        }
+
+        .prob-track {
+            flex: 1;
+            height: 6px;
+            background: var(--bg-elev-2);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .prob-fill {
+            height: 100%;
+            background: var(--accent);
+            transition: width 0.6s cubic-bezier(.2, .8, .2, 1);
+        }
+
+        .prob-val {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--text);
+            min-width: 50px;
+            text-align: right;
+        }
+
+        .img-drop-zone {
+            border: 2px dashed var(--line);
+            border-radius: 16px;
+            padding: 40px 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: var(--bg-elev);
+            position: relative;
+            user-select: none;
+        }
+
+        .img-drop-zone:hover,
+        .img-drop-zone.dragover {
+            border-color: var(--accent);
+            background: var(--accent-soft);
+        }
+
+        .img-drop-zone.has-image {
+            padding: 12px;
+            border-color: var(--accent);
+        }
+
+        .img-drop-zone .dz-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+            pointer-events: none;
+        }
+
+        .img-drop-zone .dz-title {
+            font-family: 'Fraunces', serif;
+            font-size: 20px;
+            margin-bottom: 6px;
+            pointer-events: none;
+        }
+
+        .img-drop-zone .dz-sub {
+            font-size: 13px;
+            color: var(--text-dim);
+            pointer-events: none;
+        }
+
+        .img-drop-zone .dz-sub span {
+            color: var(--accent);
+            pointer-events: none;
+        }
+
+        #imagePreview {
+            width: 100%;
+            max-height: 280px;
+            object-fit: contain;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .img-remove-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(248, 81, 73, 0.15);
+            border: 1px solid #F85149;
+            color: #F85149;
+            border-radius: 6px;
+            padding: 4px 10px;
+            font-size: 12px;
+            cursor: pointer;
+            display: none;
+            z-index: 10;
+        }
+
+        .img-classifying-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.45);
+            border-radius: 14px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            color: var(--accent);
+            letter-spacing: 0.08em;
+            z-index: 5;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="app-shell">
+
+        <aside class="sidebar"></aside>
+
+        <main class="main">
+
+            <div class="page-head">
+                <div>
+                    <div class="page-eyebrow">/ inference</div>
+                    <h1 class="page-title">Playground.</h1>
+                    <p class="page-sub">Feed inputs to your model and see live predictions.</p>
+                </div>
+                <div class="row">
+                    <select id="modelSel" class="mono"
+                        style="background:var(--bg-elev);border:1px solid var(--line);border-radius:8px;
+                               padding:8px 14px;font-size:13px;color:var(--text);min-width:280px;">
+                        <option value="">— pick a model —</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="modelInfo" class="card" style="display:none;margin-bottom:24px;">
+                <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+                    <div>
+                        <div class="page-eyebrow" id="miFramework">—</div>
+                        <h3 id="miName"
+                            style="font-family:'Fraunces',serif;font-size:24px;letter-spacing:-0.02em;margin-top:4px;">
+                            —
+                        </h3>
+                    </div>
+                    <div class="mono" style="font-size:12px;color:var(--text-dim);align-self:flex-end;">
+                        target: <span id="miTarget" style="color:var(--accent);">—</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TABULAR -->
+            <div class="pg-grid" id="pgGrid" style="display:none;">
+                <div class="card">
+                    <p class="eyebrow" style="margin-bottom:16px;">Inputs</p>
+                    <div id="featureGrid" class="feature-grid"></div>
+                    <button id="predictBtn" class="btn btn-accent"
+                        style="margin-top:20px;width:100%;justify-content:center;">
+                        Run prediction
+                    </button>
+                </div>
+                <div>
+                    <p class="eyebrow" style="margin-bottom:16px;">Prediction</p>
+                    <div id="resultDisplay" class="result-display">
+                        <div class="result-label">awaiting input</div>
+                        <div class="result-prediction">·</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- IMAGE -->
+            <div id="imgGrid" style="display:none;">
+                <div class="pg-grid">
+                    <div class="card">
+                        <p class="eyebrow" style="margin-bottom:16px;">Upload an image</p>
+
+                        <input type="file" id="imgFileInp" accept="image/*"
+                               style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;" />
+
+                        <div id="imgDropZone" class="img-drop-zone">
+                            <img id="imagePreview" alt="preview" />
+                            <button id="imgRemoveBtn" class="img-remove-btn" type="button">✕ Remove</button>
+                            <div class="img-classifying-overlay" id="classifyingOverlay">classifying…</div>
+                            <div id="imgDropPlaceholder">
+                                <div class="dz-icon">🖼️</div>
+                                <div class="dz-title">Drop an image here</div>
+                                <div class="dz-sub">or <span>browse files</span></div>
+                            </div>
+                        </div>
+
+                        <button id="imgPredictBtn" class="btn btn-accent"
+                            style="margin-top:16px;width:100%;justify-content:center;" disabled>
+                            Classify image
+                        </button>
+                    </div>
+
+                    <div>
+                        <p class="eyebrow" style="margin-bottom:16px;">Prediction</p>
+                        <div id="imgResultDisplay" class="result-display">
+                            <div class="result-label">awaiting image</div>
+                            <div class="result-prediction">·</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="emptyState" class="empty">
+                <div class="empty-art">⚙</div>
+                <h3>Pick a model to start</h3>
+                <p>Use the dropdown above to choose a trained model, then fill in feature values.</p>
+            </div>
+
+        </main>
+    </div>
+
+    <script src="../js/common.js?v=2"></script>
+    <script src="../js/sidebar.js?v=2"></script>
+
+    <script>
+    (async function () {
+
+        if (!auth.requireAuth()) return;
+        renderSidebar('playground');
+        await loadCurrentUser();
+
+        const $ = id => document.getElementById(id);
+
+        let currentModel      = null;
+        let selectedImageFile = null;
+
+        function escapeHtml(s) {
+            return String(s).replace(/[&<>"']/g,
+                c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        }
+
+        // ── Load all models into the dropdown ─────────────────────────
+        async function loadAllModels() {
+            try {
+                const projects = await api('/api/projects');
+                const all = [];
+                for (const p of projects) {
+                    try {
+                        const ms = await api(`/api/training/models/project/${p.id}`);
+                        ms.forEach(m => all.push({ ...m, project_name: p.name }));
+                    } catch { }
+                }
+                $('modelSel').innerHTML =
+                    `<option value="">— pick a model —</option>` +
+                    all.map(m => {
+                        const tag = m.task_type === 'image_classification' ? ' 🖼️' : '';
+                        return `<option value="${m.id}">${escapeHtml(m.project_name)} · ${escapeHtml(m.name)}${tag}</option>`;
+                    }).join('');
+                $('modelSel').onchange = onModelSelect;
+            } catch (e) {
+                toast(e.message, 'error');
+            }
+        }
+
+        // ── Model select ──────────────────────────────────────────────
+        async function onModelSelect() {
+            const id = $('modelSel').value;
+            if (!id) {
+                $('pgGrid').style.display    = 'none';
+                $('imgGrid').style.display   = 'none';
+                $('modelInfo').style.display = 'none';
+                $('emptyState').style.display = '';
+                return;
+            }
+            try {
+                const m = await api(`/api/training/models/${id}`);
+                currentModel = m;
+
+                $('emptyState').style.display = 'none';
+                $('modelInfo').style.display  = '';
+                $('miName').textContent       = m.name;
+                $('miFramework').textContent  = `/ ${m.framework} · ${m.task_type}`;
+                $('miTarget').textContent     = m.target_column || 'class';
+
+                const isImage = m.task_type === 'image_classification'
+                             || m.model_type === 'image'
+                             || m.dataset_type === 'image';
+
+                if (isImage) {
+                    $('pgGrid').style.display  = 'none';
+                    $('imgGrid').style.display = '';
+                    resetImageUI();
+                } else {
+                    $('imgGrid').style.display = 'none';
+                    $('pgGrid').style.display  = '';
+                    buildTabularInputs(m);
+                }
+            } catch (e) {
+                toast(e.message, 'error');
+            }
+        }
+
+        // ── Tabular inputs — instant, no API calls ────────────────────
+        function buildTabularInputs(m) {
+            document.getElementById('sampleBtn')?.remove();
+
+            const skipPatterns = [
+                /^id$/i, /_id$/i, /^.*_id$/i, /id_/i,
+                /date/i, /time/i, /timestamp/i,
+                /created/i, /updated/i, /index/i, /rownum/i, /row_num/i
+            ];
+            const usableFeatures = (m.feature_columns || []).filter(
+                col => !skipPatterns.some(p => p.test(col))
+            );
+
+            $('featureGrid').innerHTML = usableFeatures.map(col => `
+                <div class="field">
+                    <label style="display:block;margin-bottom:6px;font-size:13px;color:var(--text-dim);">
+                        ${escapeHtml(col)}
+                    </label>
+                    <input type="text" data-feature="${escapeHtml(col)}"
+                        value="" placeholder="value"
+                        style="width:100%;background:var(--bg-elev-2);border:1px solid var(--line);
+                               border-radius:10px;padding:10px 14px;color:var(--text);" />
+                </div>`).join('');
+
+            $('predictBtn').disabled = false;
+            resetResult();
+
+            const btn     = document.createElement('button');
+            btn.id        = 'sampleBtn';
+            btn.type      = 'button';
+            btn.className = 'btn btn-ghost';
+            btn.style.cssText = 'margin-bottom:16px;width:100%;font-size:13px;';
+            btn.textContent   = 'Fill random sample row';
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('[data-feature]').forEach(inp => {
+                    inp.value = (Math.random() * 100).toFixed(2);
+                    inp.dispatchEvent(new Event('input',  { bubbles: true }));
+                    inp.dispatchEvent(new Event('change', { bubbles: true }));
+                });
+                toast('Random sample loaded', 'success');
+            });
+            $('featureGrid').parentElement.insertBefore(btn, $('featureGrid'));
+        }
+
+        // ── Tabular predict ───────────────────────────────────────────
+        $('predictBtn').onclick = async () => {
+            if (!currentModel) return;
+            const features = {};
+            (currentModel.feature_columns || []).forEach(col => { features[col] = null; });
+            document.querySelectorAll('[data-feature]').forEach(inp => {
+                const v = inp.value.trim();
+                if (v === '') {
+                    features[inp.dataset.feature] = null;
+                } else {
+                    const n = Number(v);
+                    features[inp.dataset.feature] = isFinite(n) ? n : v;
+                }
+            });
+            try {
+                const res = await api('/api/training/predict', {
+                    method: 'POST',
+                    body: { model_id: currentModel.id, features }
+                });
+                renderResult(res);
+            } catch (e) {
+                toast(e.message, 'error');
+            }
+        };
+
+        function renderResult(r) {
+            $('resultDisplay').innerHTML = `
+                <div class="result-label">prediction</div>
+                <div class="result-prediction">${escapeHtml(String(r.prediction))}</div>`;
+        }
+
+        function resetResult() {
+            $('resultDisplay').innerHTML = `
+                <div class="result-label">awaiting input</div>
+                <div class="result-prediction">·</div>`;
+        }
+
+        // ── Image UI ──────────────────────────────────────────────────
+        function resetImageUI() {
+            selectedImageFile = null;
+            $('imagePreview').style.display    = 'none';
+            $('imagePreview').src              = '';
+            $('imgDropPlaceholder').style.display = '';
+            $('imgRemoveBtn').style.display    = 'none';
+            $('imgDropZone').classList.remove('has-image');
+            $('imgPredictBtn').disabled        = true;
+            $('imgResultDisplay').innerHTML = `
+                <div class="result-label">awaiting image</div>
+                <div class="result-prediction">·</div>`;
+        }
+
+        function applyImageFile(file) {
+            if (!file || !file.type.startsWith('image/')) {
+                toast('Please select a valid image file', 'error');
+                return;
+            }
+            selectedImageFile = file;
+            const reader = new FileReader();
+            reader.onload = e => {
+                $('imagePreview').src              = e.target.result;
+                $('imagePreview').style.display    = 'block';
+                $('imgDropPlaceholder').style.display = 'none';
+                $('imgRemoveBtn').style.display    = 'block';
+                $('imgDropZone').classList.add('has-image');
+                $('imgPredictBtn').disabled        = false;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        const fileInp = $('imgFileInp');
+
+        fileInp.addEventListener('change', () => {
+            if (fileInp.files && fileInp.files[0]) applyImageFile(fileInp.files[0]);
+            fileInp.value = '';
+        });
+
+        $('imgDropZone').addEventListener('click', e => {
+            if ($('imgRemoveBtn').contains(e.target)) return;
+            fileInp.click();
+        });
+
+        $('imgDropZone').addEventListener('dragover', e => {
+            e.preventDefault();
+            $('imgDropZone').classList.add('dragover');
+        });
+        $('imgDropZone').addEventListener('dragleave', () => {
+            $('imgDropZone').classList.remove('dragover');
+        });
+        $('imgDropZone').addEventListener('drop', e => {
+            e.preventDefault();
+            $('imgDropZone').classList.remove('dragover');
+            if (e.dataTransfer.files[0]) applyImageFile(e.dataTransfer.files[0]);
+        });
+
+        $('imgRemoveBtn').addEventListener('click', e => {
+            e.stopPropagation();
+            resetImageUI();
+        });
+
+        // ── Classify image ────────────────────────────────────────────
+        $('imgPredictBtn').addEventListener('click', async () => {
+            if (!selectedImageFile || !currentModel) return;
+
+            $('classifyingOverlay').style.display = 'flex';
+            $('imgPredictBtn').disabled = true;
+
+            try {
+                const formData = new FormData();
+                formData.append('image', selectedImageFile);
+                formData.append('model_id', String(currentModel.id));
+
+                const token = auth.getToken ? auth.getToken() : localStorage.getItem('token');
+                const base  = document.querySelector('meta[name="api-base"]').content;
+
+                const res = await fetch(`${base}/api/training/predict-image`, {
+                    method: 'POST',
+                    headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+                    body: formData,
+                });
+
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({ detail: res.statusText }));
+                    throw new Error(err.detail || 'Classification failed');
+                }
+
+                const data = await res.json();
+
+                let html = `
+                    <div class="result-label">prediction</div>
+                    <div class="result-prediction">${escapeHtml(String(data.prediction))}</div>`;
+
+                if (data.probabilities && Object.keys(data.probabilities).length) {
+                    const probs = Object.entries(data.probabilities)
+                        .sort((a, b) => b[1] - a[1]).slice(0, 5);
+                    html += `<div class="prob-bar">` +
+                        probs.map(([cls, prob]) => `
+                            <div class="prob-row">
+                                <span class="prob-label">${escapeHtml(cls)}</span>
+                                <div class="prob-track">
+                                    <div class="prob-fill" style="width:${(prob*100).toFixed(1)}%"></div>
+                                </div>
+                                <span class="prob-val">${(prob*100).toFixed(1)}%</span>
+                            </div>`).join('') + `</div>`;
+                }
+
+                $('imgResultDisplay').innerHTML = html;
+
+            } catch (e) {
+                toast(e.message, 'error');
+            } finally {
+                $('classifyingOverlay').style.display = 'none';
+                $('imgPredictBtn').disabled = false;
+            }
+        });
+
+        await loadAllModels();
+
+    })();
+    </script>
+
+</body>
+</html>

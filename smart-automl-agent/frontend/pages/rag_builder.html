@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="api-base" content="https://modelgenx.site"/>
+<title>RAG Builder — Model Gen X</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Inter:wght@300..600&family=JetBrains+Mono:wght@400..600&family=Cairo:wght@300..700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../css/main.css"/>
+<link rel="stylesheet" href="../css/app.css"/>
+<style>
+.builder-grid{display:grid;grid-template-columns:400px 1fr;gap:20px;align-items:start;}
+@media(max-width:960px){.builder-grid{grid-template-columns:1fr;}}
+.panel{background:var(--bg-elev);border:1px solid var(--line);border-radius:16px;padding:24px;margin-bottom:16px;}
+.panel-title{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-faint);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.step-num{width:22px;height:22px;border-radius:50%;background:var(--line);color:var(--text-dim);font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
+.step-done .step-num{background:#3FB950;color:#fff;}
+.step-active .step-num{background:var(--accent);color:#06121A;}
+
+/* Upload zone */
+.upload-zone{border:2px dashed var(--line);border-radius:12px;padding:32px 20px;text-align:center;cursor:pointer;transition:all .2s;}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:var(--accent-soft);}
+.file-types{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;justify-content:center;}
+.file-type-tag{padding:3px 8px;border-radius:4px;font-size:10px;font-family:'JetBrains Mono',monospace;background:var(--bg-elev-2);color:var(--text-faint);border:1px solid var(--line);}
+.doc-item{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg-elev-2);border-radius:8px;margin-bottom:6px;font-size:13px;}
+.doc-name{font-family:'JetBrains Mono',monospace;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px;}
+
+/* Progress */
+.progress-wrap{background:var(--bg-elev-2);border-radius:999px;height:6px;overflow:hidden;margin-top:8px;}
+.progress-bar{height:100%;border-radius:999px;background:var(--accent);box-shadow:0 0 8px var(--accent);transition:width .4s ease;}
+
+/* Templates */
+.template-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;}
+.template-btn{padding:10px 12px;background:var(--bg-elev-2);border:1px solid var(--line);border-radius:10px;cursor:pointer;text-align:left;font-size:12px;color:var(--text-dim);transition:all .15s;}
+.template-btn:hover{border-color:var(--accent);color:var(--text);}
+.template-btn strong{display:block;color:var(--text);margin-bottom:2px;font-size:13px;}
+
+/* Chat */
+.chat-box{background:var(--bg);border:1px solid var(--line);border-radius:16px;display:flex;flex-direction:column;height:520px;}
+.chat-stream{flex:1;overflow-y:auto;padding:20px;}
+.msg{margin-bottom:18px;}
+.msg-role{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-faint);margin-bottom:5px;}
+.msg-role.user{color:var(--accent);}
+.msg-body{font-size:14px;line-height:1.65;white-space:pre-wrap;}
+.chat-bar{padding:12px;border-top:1px solid var(--line);display:flex;gap:8px;}
+.chat-bar input{flex:1;background:var(--bg-elev-2);border:1px solid var(--line);border-radius:10px;padding:10px 14px;color:var(--text);font-size:14px;}
+.chat-bar input:focus{outline:none;border-color:var(--accent);}
+.chat-bar button{padding:10px 18px;background:var(--accent);color:#06121A;border:none;border-radius:10px;cursor:pointer;font-weight:600;}
+.chat-empty{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;color:var(--text-faint);}
+.thinking span{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);margin-right:3px;animation:bounce 1.4s infinite;}
+.thinking span:nth-child(2){animation-delay:.15s;}
+.thinking span:nth-child(3){animation-delay:.3s;}
+@keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:.4;}30%{transform:translateY(-5px);opacity:1;}}
+
+/* Download */
+.dl-card{background:linear-gradient(135deg,rgba(0,229,255,.08),rgba(0,229,255,.02));border:1px solid rgba(0,229,255,.3);border-radius:16px;padding:24px;text-align:center;margin-top:16px;}
+.dl-card h3{font-family:'Fraunces',serif;font-size:22px;margin-bottom:8px;}
+.dl-features{display:flex;flex-direction:column;gap:6px;margin:16px 0;text-align:left;}
+.dl-feature{font-size:13px;color:var(--text-dim);padding:4px 0;}
+.dl-feature::before{content:"✓ ";color:#3FB950;}
+</style>
+</head>
+<body>
+<div class="app-shell">
+    <aside class="sidebar"></aside>
+    <main class="main">
+        <div class="page-head" style="margin-bottom:24px;">
+            <div>
+                <div class="page-eyebrow">/ rag builder</div>
+                <h1 class="page-title" id="botTitle">Building your bot...</h1>
+                <p class="page-sub" id="botStatus">Loading...</p>
+            </div>
+            <button class="btn btn-ghost" onclick="location.href='rag_bots.html'">All Bots</button>
+        </div>
+
+        <div class="builder-grid">
+            <!-- LEFT COLUMN -->
+            <div>
+                <!-- Step 1: System Prompt -->
+                <div class="panel" id="step1Panel">
+                    <div class="panel-title step-active" id="step1Title">
+                        <span class="step-num">1</span>Bot Personality & Prompt
+                    </div>
+                    <div class="template-grid">
+                        <button class="template-btn" onclick="setTemplate('support')">
+                            <strong>Customer Support</strong>مساعد دعم عملاء
+                        </button>
+                        <button class="template-btn" onclick="setTemplate('hr')">
+                            <strong>HR & Policies</strong>سياسات الشركة
+                        </button>
+                        <button class="template-btn" onclick="setTemplate('product')">
+                            <strong>Product Expert</strong>خبير المنتجات
+                        </button>
+                        <button class="template-btn" onclick="setTemplate('legal')">
+                            <strong>Legal Assistant</strong>مساعد قانوني
+                        </button>
+                    </div>
+                    <div class="field">
+                        <label>Bot Name</label>
+                        <input type="text" id="botNameEdit" placeholder="My Support Bot" style="background:var(--bg-elev-2);border:1px solid var(--line);border-radius:10px;padding:10px 14px;color:var(--text);width:100%;font-size:14px;margin-bottom:12px;"/>
+                    </div>
+                    <div class="field">
+                        <label>System Prompt <span style="color:var(--text-faint);font-size:11px;">(how the bot should behave)</span></label>
+                        <textarea id="systemPromptEdit" rows="5" placeholder="You are a helpful customer support assistant for [Company]. Answer only based on the provided documents. If you don't know, say 'Please contact support at support@company.com'." style="background:var(--bg-elev-2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;color:var(--text);width:100%;font-size:13px;resize:vertical;line-height:1.6;"></textarea>
+                    </div>
+                    <button class="btn btn-accent" style="width:100%;height:44px;margin-top:12px;" onclick="savePrompt()">Save Settings</button>
+
+                    <!-- Advanced Settings (collapsible) -->
+                    <div style="margin-top:16px;">
+                        <button onclick="toggleAdvanced()" style="width:100%;background:transparent;border:1px solid var(--line);border-radius:10px;padding:10px 16px;color:var(--text-dim);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:space-between;">
+                            <span>Advanced Configuration</span>
+                            <span id="advArrow">▼</span>
+                        </button>
+                        <div id="advancedSettings" style="display:none;margin-top:12px;padding:16px;background:var(--bg-elev-2);border-radius:12px;border:1px solid var(--line);">
+
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+                                <!-- Language -->
+                                <div class="field">
+                                    <label style="font-size:12px;">Language</label>
+                                    <select id="cfgLang" style="background:var(--bg-elev);border:1px solid var(--line);border-radius:8px;padding:8px 12px;color:var(--text);width:100%;font-size:13px;">
+                                        <option value="auto">Auto (detect)</option>
+                                        <option value="ar">Arabic only</option>
+                                        <option value="en">English only</option>
+                                    </select>
+                                </div>
+                                <!-- Max tokens -->
+                                <div class="field">
+                                    <label style="font-size:12px;">Max response length</label>
+                                    <select id="cfgMaxTokens" style="background:var(--bg-elev);border:1px solid var(--line);border-radius:8px;padding:8px 12px;color:var(--text);width:100%;font-size:13px;">
+                                        <option value="256">Short (256 tokens)</option>
+                                        <option value="512">Medium (512 tokens)</option>
+                                        <option value="1024" selected>Long (1024 tokens)</option>
+                                        <option value="2048">Very long (2048 tokens)</option>
+                                    </select>
+                                </div>
+                                <!-- Top K -->
+                                <div class="field">
+                                    <label style="font-size:12px;">Chunks retrieved (top_k): <span id="topKVal" style="color:var(--accent);">3</span></label>
+                                    <input type="range" id="cfgTopK" min="1" max="8" value="3" oninput="document.getElementById('topKVal').textContent=this.value" style="width:100%;accent-color:var(--accent);"/>
+                                    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-faint);"><span>Precise</span><span>Broader</span></div>
+                                </div>
+                                <!-- Temperature -->
+                                <div class="field">
+                                    <label style="font-size:12px;">Creativity (temperature): <span id="tempVal" style="color:var(--accent);">0.7</span></label>
+                                    <input type="range" id="cfgTemp" min="0" max="10" value="7" oninput="document.getElementById('tempVal').textContent=(this.value/10).toFixed(1)" style="width:100%;accent-color:var(--accent);"/>
+                                    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-faint);"><span>Strict</span><span>Creative</span></div>
+                                </div>
+                                <!-- Chunk size -->
+                                <div class="field">
+                                    <label style="font-size:12px;">Chunk size (words)</label>
+                                    <select id="cfgChunkSize" style="background:var(--bg-elev);border:1px solid var(--line);border-radius:8px;padding:8px 12px;color:var(--text);width:100%;font-size:13px;">
+                                        <option value="200">Small (200)</option>
+                                        <option value="350">Medium (350)</option>
+                                        <option value="500" selected>Standard (500)</option>
+                                        <option value="750">Large (750)</option>
+                                        <option value="1000">Very large (1000)</option>
+                                    </select>
+                                </div>
+                                <!-- Similarity threshold -->
+                                <div class="field">
+                                    <label style="font-size:12px;">Match threshold: <span id="simVal" style="color:var(--accent);">0.3</span></label>
+                                    <input type="range" id="cfgSim" min="1" max="9" value="3" oninput="document.getElementById('simVal').textContent=(this.value/10).toFixed(1)" style="width:100%;accent-color:var(--accent);"/>
+                                    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-faint);"><span>Loose</span><span>Strict</span></div>
+                                </div>
+                            </div>
+
+                            <!-- Welcome & Fallback messages -->
+                            <div class="field" style="margin-bottom:10px;">
+                                <label style="font-size:12px;">Welcome message</label>
+                                <input type="text" id="cfgWelcome" value="Hello! How can I help you today?" style="background:var(--bg-elev);border:1px solid var(--line);border-radius:8px;padding:8px 12px;color:var(--text);width:100%;font-size:13px;"/>
+                            </div>
+                            <div class="field" style="margin-bottom:12px;">
+                                <label style="font-size:12px;">Fallback message (when answer not found)</label>
+                                <input type="text" id="cfgFallback" value="I don't have information about that in my documents." style="background:var(--bg-elev);border:1px solid var(--line);border-radius:8px;padding:8px 12px;color:var(--text);width:100%;font-size:13px;"/>
+                            </div>
+
+                            <!-- Toggles -->
+                            <div style="display:flex;gap:16px;flex-wrap:wrap;">
+                                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;">
+                                    <input type="checkbox" id="cfgShowSources" style="accent-color:var(--accent);width:16px;height:16px;"/>
+                                    Show sources in answers
+                                </label>
+                                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;">
+                                    <input type="checkbox" id="cfgAllowGeneral" style="accent-color:var(--accent);width:16px;height:16px;"/>
+                                    Allow general knowledge
+                                </label>
+                            </div>
+
+                            <button class="btn btn-ghost" style="width:100%;height:40px;margin-top:14px;font-size:13px;" onclick="saveAdvanced()">
+                                Save Advanced Settings
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Upload -->
+                <div class="panel" id="step2Panel">
+                    <div class="panel-title" id="step2Title">
+                        <span class="step-num">2</span>Upload Documents
+                    </div>
+                    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('docInput').click()">
+                        <div style="font-size:24px;margin-bottom:8px;">📁</div>
+                        <div style="font-weight:600;margin-bottom:6px;">Drop files here or click to browse</div>
+                        <div class="file-types">
+                            <span class="file-type-tag">PDF</span>
+                            <span class="file-type-tag">DOCX</span>
+                            <span class="file-type-tag">Excel</span>
+                            <span class="file-type-tag">CSV</span>
+                            <span class="file-type-tag">PPTX</span>
+                            <span class="file-type-tag">TXT</span>
+                            <span class="file-type-tag">HTML</span>
+                            <span class="file-type-tag">JSON</span>
+                        </div>
+                    </div>
+                    <input type="file" id="docInput" multiple accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.pptx,.ppt,.html,.htm,.json,.txt,.md" style="display:none;"/>
+                    <div id="docList" style="margin-top:12px;"></div>
+                    <div id="uploadProg" style="display:none;margin-top:10px;">
+                        <div style="font-size:12px;color:var(--text-dim);margin-bottom:6px;" id="uploadStatus">Uploading...</div>
+                        <div class="progress-wrap"><div class="progress-bar" id="uploadBar" style="width:0%"></div></div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Build -->
+                <div class="panel" id="step3Panel">
+                    <div class="panel-title" id="step3Title">
+                        <span class="step-num">3</span>Build Knowledge Base
+                    </div>
+                    <div id="buildStats" style="display:flex;gap:20px;margin-bottom:16px;flex-wrap:wrap;">
+                        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-faint);">No index built yet</div>
+                    </div>
+                    <div id="buildProg" style="display:none;margin-bottom:12px;">
+                        <div style="font-size:12px;color:var(--text-dim);margin-bottom:6px;" id="buildStatus">Building...</div>
+                        <div class="progress-wrap"><div class="progress-bar" id="buildBar" style="width:0%"></div></div>
+                    </div>
+                    <button class="btn btn-accent" style="width:100%;height:48px;font-size:15px;" id="buildBtn" onclick="buildIndex()">
+                        Build Knowledge Base
+                    </button>
+                    <div style="font-size:11px;color:var(--text-faint);text-align:center;margin-top:8px;">200 tokens (under 5MB) · 500 tokens (over 5MB)</div>
+                </div>
+
+                <!-- Download -->
+                <div class="dl-card" id="dlCard" style="display:none;">
+                    <h3>Your Bot is Ready!</h3>
+                    <p style="color:var(--text-dim);font-size:13px;margin-bottom:16px;">Download the complete package and give it to any developer</p>
+                    <div class="dl-features">
+                        <div class="dl-feature">Complete Python server (FastAPI)</div>
+                        <div class="dl-feature">Beautiful chat UI (HTML/CSS/JS)</div>
+                        <div class="dl-feature">Pre-built knowledge base (ChromaDB)</div>
+                        <div class="dl-feature">Your original documents</div>
+                        <div class="dl-feature">README with setup instructions</div>
+                    </div>
+                    <button class="btn btn-accent" style="width:100%;height:52px;font-size:16px;" onclick="downloadPackage()">
+                        Download Package (.zip)
+                    </button>
+                    <div style="font-size:12px;color:var(--text-faint);margin-top:10px;">
+                        Developer needs: Python + <a href="https://console.groq.com" target="_blank" style="color:var(--accent);">free Groq API key</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN: Chat Test -->
+            <div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-faint);margin-bottom:12px;">Test your bot live</div>
+                <div class="chat-box">
+                    <div class="chat-stream" id="chatStream">
+                        <div class="chat-empty" id="chatEmpty">
+                            <div style="font-size:32px;">💬</div>
+                            <div>Build the knowledge base first, then test your bot here</div>
+                        </div>
+                    </div>
+                    <div class="chat-bar" id="chatBar" style="display:none;">
+                        <input type="text" id="questionInput" placeholder="Ask your bot anything..." onkeydown="if(event.key==='Enter') sendQ()"/>
+                        <button onclick="sendQ()">Ask →</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="../js/common.js?v=2"></script>
+<script src="../js/sidebar.js?v=2"></script>
+<script>
+const TEMPLATES = {
+    support: {
+        name: "Customer Support Bot",
+        prompt: "You are a professional customer support assistant. Answer customer questions based ONLY on the provided company documents. Be helpful, friendly, and concise. If you cannot find the answer in the documents, say: 'For more help, please contact our support team.' Always respond in the same language the customer uses."
+    },
+    hr: {
+        name: "HR & Policies Bot",
+        prompt: "You are an HR assistant specialized in company policies and procedures. Answer employee questions based ONLY on the provided HR documents and policy manuals. Be professional and accurate. If unsure, recommend the employee contact HR directly. Respond in the same language as the question."
+    },
+    product: {
+        name: "Product Expert Bot",
+        prompt: "You are a product knowledge expert. Answer questions about our products and services based ONLY on the provided product documentation. Be specific, helpful, and highlight key features when relevant. If information is not available, say so clearly. Match the language of the user."
+    },
+    legal: {
+        name: "Legal Assistant Bot",
+        prompt: "You are a legal document assistant. Provide information based ONLY on the provided legal documents. Always add: 'This is for informational purposes only and does not constitute legal advice. Consult a qualified lawyer for legal guidance.' Respond in the language of the question."
+    }
+};
+
+window.setTemplate = function(key) {
+    const t = TEMPLATES[key];
+    document.getElementById('botNameEdit').value = t.name;
+    document.getElementById('systemPromptEdit').value = t.prompt;
+};
+
+window.toggleAdvanced = function() {
+    const el = document.getElementById('advancedSettings');
+    const arrow = document.getElementById('advArrow');
+    const visible = el.style.display !== 'none';
+    el.style.display = visible ? 'none' : '';
+    arrow.textContent = visible ? '▼' : '▲';
+};
+
+window.saveAdvanced = async function() {
+    try {
+        await api(`/api/rag/${botId}/update`, {
+            method: 'PATCH',
+            body: {
+                language:             document.getElementById('cfgLang').value,
+                max_tokens:           parseInt(document.getElementById('cfgMaxTokens').value),
+                top_k:                parseInt(document.getElementById('cfgTopK').value),
+                temperature:          parseFloat(document.getElementById('cfgTemp').value) / 10,
+                chunk_size:           parseInt(document.getElementById('cfgChunkSize').value),
+                similarity_threshold: parseFloat(document.getElementById('cfgSim').value) / 10,
+                welcome_msg:          document.getElementById('cfgWelcome').value,
+                fallback_msg:         document.getElementById('cfgFallback').value,
+                show_sources:         document.getElementById('cfgShowSources').checked,
+                allow_general:        document.getElementById('cfgAllowGeneral').checked,
+            }
+        });
+        toast('Advanced settings saved!', 'success');
+    } catch(e) { toast(e.message, 'error'); }
+};
+
+const params = new URLSearchParams(location.search);
+const botId  = parseInt(params.get('bot'));
+if (!botId) location.href = 'rag_bots.html';
+
+window._botId   = botId;
+window._history = [];
+window._bot     = null;
+
+(async function init() {
+    if (!auth.requireAuth()) return;
+    renderSidebar('rag');
+    await loadCurrentUser();
+    await loadBot();
+    setupUpload();
+})();
+
+async function loadBot() {
+    try {
+        const bot = await api(`/api/rag/${botId}`);
+        window._bot = bot;
+        document.getElementById('botTitle').textContent  = bot.name;
+        document.getElementById('botStatus').textContent = `${bot.status} · ${bot.n_documents} docs · ${bot.n_chunks} chunks`;
+        document.getElementById('botNameEdit').value      = bot.name;
+        document.getElementById('systemPromptEdit').value = bot.system_prompt || '';
+        // Populate advanced settings
+        if (bot.language)      document.getElementById('cfgLang').value = bot.language;
+        if (bot.max_tokens)    document.getElementById('cfgMaxTokens').value = bot.max_tokens;
+        if (bot.top_k)         { document.getElementById('cfgTopK').value = bot.top_k; document.getElementById('topKVal').textContent = bot.top_k; }
+        if (bot.temperature)   { document.getElementById('cfgTemp').value = Math.round(bot.temperature * 10); document.getElementById('tempVal').textContent = bot.temperature.toFixed(1); }
+        if (bot.chunk_size)    document.getElementById('cfgChunkSize').value = bot.chunk_size;
+        if (bot.similarity_threshold) { document.getElementById('cfgSim').value = Math.round(bot.similarity_threshold * 10); document.getElementById('simVal').textContent = bot.similarity_threshold.toFixed(1); }
+        if (bot.welcome_msg)   document.getElementById('cfgWelcome').value = bot.welcome_msg;
+        if (bot.fallback_msg)  document.getElementById('cfgFallback').value = bot.fallback_msg;
+        document.getElementById('cfgShowSources').checked  = bot.show_sources || false;
+        document.getElementById('cfgAllowGeneral').checked = bot.allow_general || false;
+        updateBuildStats(bot);
+        if (bot.status === 'ready') {
+            markStepDone('step1'); markStepDone('step2'); markStepDone('step3');
+            document.getElementById('dlCard').style.display = '';
+            enableChat();
+        }
+    } catch(e) { toast(e.message, 'error'); }
+}
+
+function markStepDone(id) {
+    const el = document.getElementById(id + 'Title');
+    if (el) { el.classList.remove('step-active'); el.classList.add('step-done'); }
+}
+
+function updateBuildStats(bot) {
+    document.getElementById('buildStats').innerHTML = `
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;">
+            <strong style="color:var(--accent);font-size:20px;display:block;">${bot.n_chunks}</strong>chunks
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;">
+            <strong style="color:var(--accent);font-size:20px;display:block;">${bot.n_documents}</strong>documents
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;">
+            <strong style="color:var(--accent);font-size:20px;display:block;">${bot.total_size_mb}MB</strong>size
+        </div>
+    `;
+}
+
+async function savePrompt() {
+    const name   = document.getElementById('botNameEdit').value.trim();
+    const prompt = document.getElementById('systemPromptEdit').value.trim();
+    if (!name) { toast('Enter a bot name', 'error'); return; }
+    try {
+        await api(`/api/rag/${botId}/update`, {
+            method: 'PATCH',
+            body: { name, system_prompt: prompt }
+        });
+        document.getElementById('botTitle').textContent = name;
+        markStepDone('step1');
+        document.getElementById('step2Title').classList.add('step-active');
+        toast('Saved!', 'success');
+    } catch(e) { toast(e.message, 'error'); }
+}
+
+function setupUpload() {
+    const zone  = document.getElementById('uploadZone');
+    const input = document.getElementById('docInput');
+    zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('drag'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+    zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('drag'); uploadFiles(e.dataTransfer.files); });
+    input.addEventListener('change', () => uploadFiles(input.files));
+}
+
+async function uploadFiles(files) {
+    if (!files.length) return;
+    const prog = document.getElementById('uploadProg');
+    const bar  = document.getElementById('uploadBar');
+    const stat = document.getElementById('uploadStatus');
+    prog.style.display = '';
+    bar.style.width = '15%';
+    stat.textContent = `Uploading ${files.length} file(s)...`;
+
+    const fd = new FormData();
+    Array.from(files).forEach(f => fd.append('files', f));
+    try {
+        const token = localStorage.getItem('saa.token');
+        const res = await fetch(`${window.API_BASE}/api/rag/${botId}/upload`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+            body: fd,
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        bar.style.width = '100%'; bar.style.background = '#3FB950';
+        stat.textContent = `${data.uploaded.length} file(s) uploaded successfully`;
+        document.getElementById('docList').innerHTML = data.uploaded.map(f =>
+            `<div class="doc-item"><span class="doc-name">📄 ${escapeHtml(f)}</span><span style="color:#3FB950;font-size:11px;">Ready</span></div>`
+        ).join('');
+        markStepDone('step2');
+        document.getElementById('step3Title').classList.add('step-active');
+        toast(`${data.uploaded.length} files uploaded`, 'success');
+        setTimeout(() => prog.style.display = 'none', 2000);
+    } catch(e) {
+        bar.style.background = '#F85149';
+        stat.textContent = 'Upload failed: ' + e.message;
+        toast(e.message, 'error');
+    }
+}
+
+async function buildIndex() {
+    const btn  = document.getElementById('buildBtn');
+    const prog = document.getElementById('buildProg');
+    const bar  = document.getElementById('buildBar');
+    const stat = document.getElementById('buildStatus');
+    btn.disabled = true; btn.textContent = 'Building...';
+    prog.style.display = '';
+    bar.style.width = '10%';
+    stat.textContent = 'Starting...';
+
+    try {
+        const res = await api(`/api/rag/${botId}/build`, { method: 'POST' });
+        toast(`Building... ${res.tokens_spent} tokens`, 'success');
+        stat.textContent = 'Processing documents...';
+        let pct = 15;
+        const iv = setInterval(async () => {
+            try {
+                const bot = await api(`/api/rag/${botId}`);
+                pct = Math.min(pct + 8, 88);
+                bar.style.width = pct + '%';
+                stat.textContent = `Processing... ${bot.n_chunks} chunks indexed`;
+                updateBuildStats(bot);
+                if (bot.status === 'ready') {
+                    clearInterval(iv);
+                    bar.style.width = '100%'; bar.style.background = '#3FB950';
+                    stat.textContent = `Done! ${bot.n_chunks} chunks from ${bot.n_documents} documents`;
+                    btn.textContent = 'Rebuild'; btn.disabled = false;
+                    markStepDone('step3');
+                    document.getElementById('dlCard').style.display = '';
+                    document.getElementById('botStatus').textContent = `ready · ${bot.n_documents} docs · ${bot.n_chunks} chunks`;
+                    enableChat();
+                    toast('Bot ready!', 'success');
+                } else if (bot.status === 'failed') {
+                    clearInterval(iv);
+                    bar.style.background = '#F85149';
+                    stat.textContent = 'Build failed — try again';
+                    btn.textContent = 'Retry'; btn.disabled = false;
+                    toast('Build failed', 'error');
+                }
+            } catch {}
+        }, 3000);
+    } catch(e) {
+        bar.style.background = '#F85149';
+        stat.textContent = e.message;
+        btn.textContent = 'Build Knowledge Base'; btn.disabled = false;
+        toast(e.message, 'error');
+    }
+}
+
+function enableChat() {
+    document.getElementById('chatEmpty').style.display = 'none';
+    document.getElementById('chatBar').style.display = '';
+}
+
+async function sendQ() {
+    const input = document.getElementById('questionInput');
+    const q = input.value.trim();
+    if (!q) return;
+    input.value = '';
+    addMsg('user', q);
+    window._history.push({ role: 'user', content: q });
+    const thinking = addThinking();
+    try {
+        const res = await api(`/api/rag/${botId}/query`, {
+            method: 'POST',
+            body: { question: q, history: window._history.slice(0, -1) }
+        });
+        thinking.remove();
+        addMsg('assistant', res.answer);
+        window._history.push({ role: 'assistant', content: res.answer });
+    } catch(e) {
+        thinking.remove();
+        addMsg('assistant', 'Error: ' + e.message);
+    }
+}
+
+function addMsg(role, content) {
+    const stream = document.getElementById('chatStream');
+    const div = document.createElement('div');
+    div.className = 'msg';
+    div.innerHTML = `<div class="msg-role ${role==='user'?'user':''}">${role==='user'?'— you':'— bot'}</div><div class="msg-body">${escapeHtml(content)}</div>`;
+    stream.appendChild(div);
+    stream.scrollTop = stream.scrollHeight;
+    return div;
+}
+
+function addThinking() {
+    const stream = document.getElementById('chatStream');
+    const div = document.createElement('div');
+    div.className = 'msg';
+    div.innerHTML = '<div class="msg-role">— bot</div><div class="msg-body thinking"><span></span><span></span><span></span></div>';
+    stream.appendChild(div);
+    stream.scrollTop = stream.scrollHeight;
+    return div;
+}
+
+function downloadPackage() {
+    const token = localStorage.getItem('saa.token');
+    fetch(`${window.API_BASE}/api/rag/${botId}/download`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+    }).then(r => r.blob()).then(blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `rag_bot_${botId}.zip`;
+        document.body.appendChild(a); a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }).catch(e => toast(e.message, 'error'));
+}
+
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+</script>
+</body>
+</html>
