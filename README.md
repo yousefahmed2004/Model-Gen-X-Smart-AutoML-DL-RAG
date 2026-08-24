@@ -1,8 +1,4 @@
-أكيد. بما إنك عايز README احترافي ومنظم للمشروع، والأهم إن الصور تظهر من داخل `images/`، استخدمت روابط **Raw GitHub** الصحيحة بدل روابط `blob`.
 
-انسخ الملف ده كاملًا كـ `README.md`:
-
-````markdown
 # 🤖 Model Gen X — Smart AutoML, DL & RAG Agent
 
 > **Build, train, evaluate, and interact with Machine Learning, Deep Learning, and RAG models using AI — without the complexity of traditional ML workflows.**
