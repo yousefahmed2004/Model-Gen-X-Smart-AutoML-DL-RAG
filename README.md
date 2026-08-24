@@ -909,7 +909,6 @@ AI Engineer | Machine Learning | Deep Learning | NLP | AI Automation
 
 # ⭐ Model Gen X
 
-> **Train models. Build AI. Query your data. — without the boilerplate.**
 
 ```
 
