@@ -910,7 +910,3 @@ AI Engineer | Machine Learning | Deep Learning | NLP | AI Automation
 # ⭐ Model Gen X
 
 
-```
-
-**ملاحظة مهمة:** الروابط اللي فوق كلها معمولة بصيغة `raw.githubusercontent.com`، وده الشكل الصح لما الصور تكون فعلًا داخل فولدر `images` في الريبو. وبالتالي GitHub هيعرض الصور داخل الـREADME بدل ما يفتحلك صفحة الـblob.
-```
